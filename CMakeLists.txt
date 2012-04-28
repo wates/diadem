@@ -19,4 +19,5 @@ add_library(gtest gtest/gtest.h gtest/gtest_main.cc gtest/gtest-all.cc)
 
 
 add_subdirectory(jpncode)
+add_subdirectory(wts)
 
