@@ -46,7 +46,7 @@ struct QueryBody
 class StorageBody
 	:public Storage
 {
-	bool Open()
+	bool Open(const char *address,int port,const char *database,const char *user,const char *password)
 	{
 		return true;
 	}

@@ -15,7 +15,7 @@ JSON_CONVERT_MEMBER(password)
 JSON_CONVERT_END
 
 
-struct Config
+struct ServerConfig
 {
 	std::string server_address;
 	int port;
@@ -26,7 +26,7 @@ struct Config
 	std::vector<ConfigChannel> auto_channel;
 };
 
-JSON_CONVERT_BEGIN(Config)
+JSON_CONVERT_BEGIN(ServerConfig)
 JSON_CONVERT_MEMBER(server_address)
 JSON_CONVERT_MEMBER(port)
 JSON_CONVERT_MEMBER(password)
@@ -72,7 +72,7 @@ class IRCClient
 
 	Status status;
 
-	Config config;
+	ServerConfig config;
 	bool enable;
 
 	struct Nickname
@@ -118,7 +118,7 @@ public:
 	void MsgPong(const std::string &target);
 public:
 	unsigned int last_ping;
-    IRCClient(wts::Observer *obs,const Config &conf);
+    IRCClient(wts::Observer *obs,const ServerConfig &conf);
 	void SendMsg(const std::string &command,const Parameter &param,const std::string &message="");
     Endpoint *next_;
 };

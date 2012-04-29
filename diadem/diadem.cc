@@ -132,7 +132,7 @@ int LineParser::Transfer(const uint8_t *buffer,int length)
 	return 0;
 }
 
-IRCClient::IRCClient(wts::Observer *obs,const Config &conf)
+IRCClient::IRCClient(wts::Observer *obs,const ServerConfig &conf)
 :config(conf)
 ,enable(false)
 {
@@ -656,63 +656,64 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 }
 
 
-	bool LoadFile(std::string filename,std::vector<char> &out)
-	{
-		std::ifstream f;
-		f.open(filename.c_str(),std::ios_base::in|std::ios_base::binary);
-		if(!f.is_open())
-			return false;
-		f.seekg(0,std::ios::end);
-		std::streamsize sz=f.tellg();
-		f.seekg(0,std::ios::beg);
-		out.resize(sz);
-		f.read(&out.front(),sz);
-		f.close();
-		return true;
-	}
+bool ReadFile(std::string filename,std::vector<char> &out)
+{
+    std::ifstream f;
+    f.open(filename.c_str(),std::ios_base::in|std::ios_base::binary);
+    if(!f.is_open())
+        return false;
+    f.seekg(0,std::ios::end);
+    std::streamsize sz=f.tellg();
+    f.seekg(0,std::ios::beg);
+    out.resize(sz);
+    f.read(&out.front(),sz);
+    f.close();
+    return true;
+}
 
-	bool LoadFile(std::string filename,std::string &out)
-	{
-		std::ifstream f;
-		f.open(filename.c_str(),std::ios_base::in);
-		if(!f.is_open())
-			return false;
-		while(!f.eof()&&f.peek())
-			out.push_back(f.get());
-		f.close();
-		return true;
-	}
+bool ReadFile(std::string filename,std::string &out)
+{
+    std::ifstream f;
+    f.open(filename.c_str(),std::ios_base::in);
+    if(!f.is_open())
+        return false;
+    while(!f.eof()&&f.peek())
+        out.push_back(f.get());
+    f.close();
+    return true;
+}
 
-	bool SaveFile(std::string filename,const void *data,size_t size)
-	{
-		std::ofstream f;
-		f.open(filename.c_str(),std::ios_base::out|std::ios_base::binary);
-		if(!f.is_open())
-			return false;
-		f.write((const char*)data,(std::streamsize)size);
-		f.close();
-		return true;
-	}
-
-	bool SaveFile(std::string filename,const std::vector<char> &in)
-	{
-		return SaveFile(filename,&in.front(),(std::streamsize)in.size());
-	}
-
-	template<typename T>
-	bool ConvertRead(std::string &in,T &out)
-	{
-		json::Reader r;
-		return json::Convert(r,in,std::string(),out);
-	}
+template<typename T>
+bool ConvertRead(std::string &in,T &out)
+{
+    json::Reader r;
+    return json::Convert(r,in,std::string(),out);
+}
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
 #include "wts/system.h"
 
-int main()
+int main(int argc,char **argv)
 {
+    std::string config_path;
+
+    if(2 == argc)
+    {
+        config_path=argv[1];
+    }
+    else
+    {
+        config_path="../config.txt";
+    }
+
+	std::string text;
+    ReadFile(config_path.c_str(),text);
+	ServerConfig conf;
+	ConvertRead(text,conf);
+
+
 	{
 		int sock;
 		wts::socket::StartupSocket();
@@ -721,9 +722,10 @@ int main()
 		{
 			std::cout<<"Already boot."<<std::endl;
 			wts::socket::CloseSocket(sock);
-			return 0;
+			return -1;
 		}
 	}
+
 	std::cout<<"Startup.."<<std::endl;
 	storage=CreateStorage();
 	if(storage->Open())
@@ -736,12 +738,7 @@ int main()
 		return 0;
 	}
 
-	logger.open("fulllog.txt");
-
-	std::string text;
-	LoadFile("config.txt",text);
-	Config conf;
-	ConvertRead(text,conf);
+	logger.open("log.txt");
 
     wts::Observer *obs=wts::CreateBasicObserver();
 

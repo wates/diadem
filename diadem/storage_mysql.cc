@@ -219,10 +219,10 @@ class StorageBody
 {
 	MYSQL *sql;
 
-	bool Open()
+	bool Open(const char *address,int port,const char *database,const char *user,const char *password)
 	{
 		sql=mysql_init(0);
-		if(!mysql_real_connect(sql,"localhost","ircdb","","",3306,0,0))
+		if(!mysql_real_connect(sql,address,database,user,password,port,0,0))
 		{
 			return false;
 		}

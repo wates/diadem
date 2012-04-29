@@ -21,7 +21,7 @@ typedef std::vector<std::vector<std::string> > StorageResult;
 class Storage
 {
 public:
-	virtual bool Open()=0;
+	virtual bool Open(const char *address,int port,const char *database,const char *user,const char *password)=0;
 	virtual inline ~Storage(){};
 
 	virtual Query* NewQuery()=0;
