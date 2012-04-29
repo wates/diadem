@@ -505,6 +505,19 @@ return ObjectStart(f,info)\
     && Convert(f,value.m5,#m5)\
     && ObjectEnd(f);}}
 
+#define CONVERT_OBJECT_7(type,m0,m1,m2,m3,m4,m5,m6)\
+    namespace wts {\
+    template<typename Func>bool Convert(Func &f,type &value,const char *info){\
+    return ObjectStart(f,info)\
+    && Convert(f,value.m0,#m0)\
+    && Convert(f,value.m1,#m1)\
+    && Convert(f,value.m2,#m2)\
+    && Convert(f,value.m3,#m3)\
+    && Convert(f,value.m4,#m4)\
+    && Convert(f,value.m5,#m5)\
+    && Convert(f,value.m6,#m6)\
+    && ObjectEnd(f);}}
+
 
 #define CONVERT_OBJECT_BEGIN(type)\
 	namespace wts\

@@ -14,7 +14,6 @@ JSON_CONVERT_MEMBER(name)
 JSON_CONVERT_MEMBER(password)
 JSON_CONVERT_END
 
-
 struct ServerConfig
 {
 	std::string server_address;
@@ -35,6 +34,27 @@ JSON_CONVERT_MEMBER(username)
 JSON_CONVERT_MEMBER(realname)
 JSON_CONVERT_MEMBER(auto_channel)
 JSON_CONVERT_END
+
+struct Config
+{
+    std::string db_address;
+    int db_port;
+    std::string db_database;
+    std::string db_user;
+    std::string db_password;
+    ServerConfig irc_server;
+};
+
+JSON_CONVERT_BEGIN(Config)
+JSON_CONVERT_MEMBER(db_address)
+JSON_CONVERT_MEMBER(db_port)
+JSON_CONVERT_MEMBER(db_database)
+JSON_CONVERT_MEMBER(db_user)
+JSON_CONVERT_MEMBER(db_password)
+JSON_CONVERT_MEMBER(irc_server)
+JSON_CONVERT_END
+
+
 
 class LineParser
 	:public wts::Simplex

@@ -694,6 +694,7 @@ bool ConvertRead(std::string &in,T &out)
 #endif
 
 #include "wts/system.h"
+#include <Windows.h>
 
 int main(int argc,char **argv)
 {
@@ -705,12 +706,16 @@ int main(int argc,char **argv)
     }
     else
     {
-        config_path="../config.txt";
+        config_path="../../config.txt";
     }
+
+    char cc[1024];
+    GetCurrentDirectory(1024,cc);
+    
 
 	std::string text;
     ReadFile(config_path.c_str(),text);
-	ServerConfig conf;
+	Config conf;
 	ConvertRead(text,conf);
 
 
@@ -728,7 +733,7 @@ int main(int argc,char **argv)
 
 	std::cout<<"Startup.."<<std::endl;
 	storage=CreateStorage();
-	if(storage->Open())
+    if(storage->Open(conf.db_address.c_str(),conf.db_port,conf.db_database.c_str(),conf.db_user.c_str(),conf.db_password.c_str()))
 	{
 		std::cout<<"Storage open."<<std::endl;
 	}
@@ -742,7 +747,7 @@ int main(int argc,char **argv)
 
     wts::Observer *obs=wts::CreateBasicObserver();
 
-	IRCClient *irc=new IRCClient(obs,conf);
+	IRCClient *irc=new IRCClient(obs,conf.irc_server);
 
 	irc->last_ping=time(0);
 	for(;;)
