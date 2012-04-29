@@ -7,7 +7,7 @@
 
 namespace wts
 {
-    const char* memmem(const char *p,int sz_p,const char *cmp,int sz_cmp)
+    const uint8_t* memmem(const void *p,int sz_p,const void *cmp,int sz_cmp)
     {
         if(sz_p<sz_cmp)
             return 0;
@@ -15,7 +15,7 @@ namespace wts
         {
             if(*((char*)p+sz)==*(char*)cmp&&
                 memcmp((char*)p+sz,cmp,sz_cmp)==0)
-                return (char*)p+sz;
+                return (uint8_t*)p+sz;
         }
         return NULL;
     }

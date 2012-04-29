@@ -1,0 +1,32 @@
+
+{
+	"server_address":"irc.ircnet.ne.jp"
+	,"port":6663
+	,"password":""
+	,"nick":"Wates"
+	,"username":"wates"
+	,"realname":"wates"
+	,"auto_channel":[
+	{
+		"name":"#ircdb"
+		,"password":""
+	}
+
+
+	,{
+		"name":"#砂利工"
+		,"password":""
+	}
+
+	,{
+		"name":"#lab_dodgson"
+		,"password":""
+	}
+
+	,{
+		"name":"#にゃんにゃん"
+		,"password":""
+	}
+
+]
+}

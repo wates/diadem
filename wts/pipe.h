@@ -8,7 +8,7 @@
 
 namespace wts
 {
-    const char* memmem(const char *p,int sz_p,const char *cmp,int sz_cmp);
+    const uint8_t* memmem(const void *p,int sz_p,const void *cmp,int sz_cmp);
 
     class Endpoint
     {
