@@ -11,4 +11,8 @@ add_executable(diadem
     storage.h
 )
 
-target_link_libraries(diadem jpncode wts)
+if(MSVC)
+    target_link_libraries(diadem jpncode wts)
+else(MSVC)
+    target_link_libraries(diadem wts jpncode pthread mysqlclient)
+endif(MSVC)

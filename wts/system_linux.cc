@@ -218,7 +218,7 @@ namespace wts
             return true;
         }
 
-        bool Send(int sock,const char *buffer,int length,int *sended)
+        bool Send(int sock,const unsigned char *buffer,int length,int *sended)
         {
             int ret=send(sock,buffer,length,0);
             if(ret<0)
@@ -232,7 +232,7 @@ namespace wts
             return true;
         }
 
-        bool Receive(int sock,char *buffer,int length,int *received)
+        bool Receive(int sock,unsigned char *buffer,int length,int *received)
         {
             int ret=recv(sock,buffer,length,0);
             if(ret<0)

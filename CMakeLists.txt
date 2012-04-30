@@ -16,6 +16,10 @@ elseif(MSVC)
 endif()
 
 add_library(gtest gtest/gtest.h gtest/gtest_main.cc gtest/gtest-all.cc)
+if(CMAKE_COMPILER_IS_GNUCC)
+    target_link_libraries(gtest pthread)
+endif()
+
 
 add_subdirectory(jpncode)
 add_subdirectory(wts)
