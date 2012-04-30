@@ -220,8 +220,9 @@ class StorageBody
 	bool Open(const char *address,int port,const char *database,const char *user,const char *password)
 	{
 		sql=mysql_init(0);
-		if(!mysql_real_connect(sql,address,database,user,password,port,0,0))
+		if(!mysql_real_connect(sql,address,user,password,database,port,0,0))
 		{
+            std::cout<<"cannt connect to mysqld, \""<<address<<":"<<port<<"\".\""<<database<<"\""<<std::endl;
 			return false;
 		}
 		mysql_query(sql,"set names utf8");
