@@ -1,8 +1,8 @@
 
-#ifndef _WIN32_
+#ifndef _WIN32
 
 #include "storage.h"
-//#include <mysql/mysql.h>
+#include <mysql/mysql.h>
 
 #include <map>
 #include <sstream>
