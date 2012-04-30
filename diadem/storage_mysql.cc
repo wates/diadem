@@ -94,14 +94,14 @@ struct QueryBody
 		if(com==COM_INSERT)
 		{
 			query<<"insert into "<<table<<" (";
-			for(NameVal::Iterator i(values);i;i++)
+			for(NameVal::Iterator i(values);i;++i)
 			{
                 if(&(*i) != &values.Front())
 					query+=",";
                 query<<Escape(i->key);
 			}
 			query<<") values (";
-			for(NameVal::Iterator i(values);i;i++)
+			for(NameVal::Iterator i(values);i;++i)
 			{
                 if(&(*i) != &values.Front())
 					query<<",";
@@ -115,14 +115,14 @@ struct QueryBody
 		if(com==COM_REPLACE)
 		{
 			query<<"replace into "<<table<<" (";
-			for(NameVal::Iterator i(values);i;i++)
+			for(NameVal::Iterator i(values);i;++i)
 			{
                 if(&(*i) != &values.Front())
 					query<<",";
 				query<<Escape(i->key);
 			}
 			query<<") values (";
-			for(NameVal::Iterator i(values);i;i++)
+			for(NameVal::Iterator i(values);i;++i)
 			{
                 if(&(*i) != &values.Front())
 					query<<",";
@@ -136,7 +136,7 @@ struct QueryBody
 		if(com==COM_UPDATE)
 		{
 			query<<"update "<<table<<" set ";
-			for(NameVal::Iterator i(values);i;i++)
+			for(NameVal::Iterator i(values);i;++i)
 			{
                 if(&(*i) != &values.Front())
 					query<<",";
@@ -147,7 +147,7 @@ struct QueryBody
 					query<<i->value;
 			}
 			query<<" where ";
-			for(NameVal::Iterator i(wheres);i;i++)
+			for(NameVal::Iterator i(wheres);i;++i)
 			{
                 if(&(*i) != &wheres.Front())
 					query<<" and ";
@@ -160,7 +160,7 @@ struct QueryBody
 			if(wheres.Size())
 			{
 				query<<" where ";
-    			for(NameVal::Iterator i(wheres);i;i++)
+    			for(NameVal::Iterator i(wheres);i;++i)
 				{
                     if(&(*i) != &wheres.Front())
 						query<<" and ";
@@ -184,7 +184,7 @@ struct QueryBody
 			if(wheres.Size())
 			{
 				query<<" where ";
-    			for(NameVal::Iterator i(wheres);i;i++)
+    			for(NameVal::Iterator i(wheres);i;++i)
 				{
                     if(&(*i) != &wheres.Front())
 						query<<" and ";
@@ -225,7 +225,7 @@ class StorageBody
 			return false;
 		}
 		mysql_query(sql,"set names utf8");
-		const char *c=mysql_character_set_name(sql);
+		mysql_character_set_name(sql);
 		return true;
 	}
 	Query* NewQuery()
@@ -238,7 +238,7 @@ class StorageBody
 		qb->Go();
 		MYSQL_RES *res;
 		sres.Clear();
-		if(res=mysql_store_result(sql))
+		if((res=mysql_store_result(sql)))
 		{
 			unsigned int fields=mysql_num_fields(res);
 			wts::Array<wts::String> rec;

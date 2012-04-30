@@ -673,12 +673,6 @@ bool ReadFile(wts::String filename,wts::Array<char> &out)
     return true;
 }
 
-template<typename T>
-bool ConvertRead(wts::String &in,T &out)
-{
-    json::Reader r;
-    return json::Convert(r,in,wts::String(),out);
-}
 #ifndef _WIN32
 #include <unistd.h>
 #endif
