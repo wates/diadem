@@ -1,59 +1,42 @@
 
 #include <wts/pipe_tcp.h>
-#include "jsonconv.h"
-#include <map>
+#include <wts/converter.h>
 
 struct ConfigChannel
 {
-	std::string name;
-	std::string password;
+	wts::String name;
+	wts::String password;
 };
 
-JSON_CONVERT_BEGIN(ConfigChannel)
-JSON_CONVERT_MEMBER(name)
-JSON_CONVERT_MEMBER(password)
-JSON_CONVERT_END
+CONVERT_OBJECT_2(ConfigChannel,
+    name,password);
 
 struct ServerConfig
 {
-	std::string server_address;
+	wts::String address;
 	int port;
-	std::string password;
-	std::string nick;
-	std::string username;
-	std::string realname;
-	std::vector<ConfigChannel> auto_channel;
+	wts::String password;
+	wts::String nick;
+	wts::String username;
+	wts::String realname;
+	wts::Array<ConfigChannel> auto_channel;
 };
 
-JSON_CONVERT_BEGIN(ServerConfig)
-JSON_CONVERT_MEMBER(server_address)
-JSON_CONVERT_MEMBER(port)
-JSON_CONVERT_MEMBER(password)
-JSON_CONVERT_MEMBER(nick)
-JSON_CONVERT_MEMBER(username)
-JSON_CONVERT_MEMBER(realname)
-JSON_CONVERT_MEMBER(auto_channel)
-JSON_CONVERT_END
+CONVERT_OBJECT_7(ServerConfig,
+    address,port,password,nick,username,realname,auto_channel);
 
 struct Config
 {
-    std::string db_address;
+    wts::String db_address;
     int db_port;
-    std::string db_database;
-    std::string db_user;
-    std::string db_password;
+    wts::String db_database;
+    wts::String db_user;
+    wts::String db_password;
     ServerConfig irc_server;
 };
 
-JSON_CONVERT_BEGIN(Config)
-JSON_CONVERT_MEMBER(db_address)
-JSON_CONVERT_MEMBER(db_port)
-JSON_CONVERT_MEMBER(db_database)
-JSON_CONVERT_MEMBER(db_user)
-JSON_CONVERT_MEMBER(db_password)
-JSON_CONVERT_MEMBER(irc_server)
-JSON_CONVERT_END
-
+CONVERT_OBJECT_6(Config,
+    db_address,db_port,db_database,db_user,db_password,irc_server);
 
 
 class LineParser
@@ -73,7 +56,7 @@ class IRCClient
 	:public wts::Simplex
 	,public wts::Subject
 {
-	typedef std::vector<std::string> Parameter;
+	typedef wts::Array<wts::String> Parameter;
 
 	wts::Buffer *send_buf;
 	wts::TcpConnection *tcp;
@@ -97,18 +80,18 @@ class IRCClient
 
 	struct Nickname
 	{
-		std::string nick;
-		std::string name;
-		std::string address;
+		wts::String nick;
+		wts::String name;
+		wts::String address;
 	};
 
 	struct Channel
 	{
 		char type;
-		std::vector<std::string> names;
+		wts::Array<wts::String> names;
 	};
 
-	std::map<std::string,Channel> channels;
+	wts::OrderedMap<wts::String,Channel> channels;
 
 public:
     inline void SetNext(Endpoint*p){next_=p;}
@@ -116,8 +99,8 @@ public:
 
 	//irc status
 
-	std::string MOTD_first;
-	std::string MOTD;
+	wts::String MOTD_first;
+	wts::String MOTD;
 
 
     // from endpoint
@@ -128,20 +111,20 @@ public:
     //from subject
 	void Update(int something);
 
-	Nickname SplitNickname(std::string msg);
-	Parameter SplitParam(std::string msg);
+	Nickname SplitNickname(wts::String msg);
+	Parameter SplitParam(wts::String msg);
 
-	void MsgPass(const std::string &pass);
-	void MsgNick(const std::string &nick);
-	void MsgUser(const std::string &username,const std::string &realname);
-	void MsgJoin(const std::string &name,const std::string &password);
-	void MsgPong(const std::string &target);
+	void MsgPass(const wts::String &pass);
+	void MsgNick(const wts::String &nick);
+	void MsgUser(const wts::String &username,const wts::String &realname);
+	void MsgJoin(const wts::String &name,const wts::String &password);
+	void MsgPong(const wts::String &target);
 public:
-	unsigned int last_ping;
+	uint64_t last_ping;
     IRCClient(wts::Observer *obs,const ServerConfig &conf);
-	void SendMsg(const std::string &command,const Parameter &param,const std::string &message="");
+	void SendMsg(const wts::String &command,const Parameter &param,const wts::String &message="");
     Endpoint *next_;
 };
 
-std::string Encode(const std::string &str);
+wts::String Encode(const wts::String &str);
 

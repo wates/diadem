@@ -404,163 +404,6 @@ namespace wts
         SizeType reserve_;
     };
 #define Array DynamicArray
-    //      template<typename T_,typename SizeType_=int,int Upkeep_=16>
-    //      class Array
-    //	:public BasicArray<T_,SizeType_>
-    //      {
-    //      public:
-    //          static const SizeType Upkeep=Upkeep_;
-
-    //          Array()
-    //		:is_local_(true)
-    //          {
-    //              reserve_=Upkeep_;
-    //              data_=reinterpret_cast<T*>(local_);
-    //          }
-    //          Array(const Array &copy)
-    //              :is_local_(true)
-    //          {
-    //              reserve_=Upkeep;
-    //              data_=reinterpret_cast<T*>(local_);
-    //              Insert(0,copy.data(),copy.size());
-    //          }
-    //          ~Array()
-    //          {
-    //              if(!is_local_)
-    //			Allocator::Free(data_);
-    //          }
-    //          Array& operator=(const Array &copy)
-    //          {
-    //              Clear();
-    //              Insert(0,copy.data(),copy.size());
-    //              return *this;
-    //          }
-    //	void Allocate(SizeType offset,SizeType length)
-    //	{
-    //              if(size_+length>reserve_)
-    //              {
-    //                  SizeType new_size=size_+length;
-    //                  SizeType new_reserve=(new_size*2+15);
-    //                  new_reserve-=new_reserve&0xf;
-
-    //                  T *new_data=reinterpret_cast<T*>(Allocator::Alloc(new_reserve*sizeof(T)));
-    //			for(SizeType i=0;i<offset;++i)
-    //			{
-    //				new(new_data+i)T(data_[i]);
-    //				data_[i].~T();
-    //			}
-    //			for(SizeType i=offset;i<size_;++i)
-    //			{
-    //				new(new_data+length+i)T(data_[i]);
-    //				data_[i].~T();
-    //			}
-    //                  reserve_=new_reserve;
-    //                  if(is_local_)
-    //                  {
-    //                      is_local_=false;
-    //                  }
-    //                  else if(data_)
-    //                  {
-    //                      Allocator::Free(data_);
-    //                  }
-    //                  data_=new_data;
-    //              }
-    //              else
-    //              {
-    //                  if(size_<offset+length)
-    //                  {
-    //                      for(SizeType i=offset+length;i<size_+length;++i)
-    //                      {
-    //                          new(data_+i)T(data_[i-length]);
-    //                          data_[i-length].~T();
-    //                      }
-    //                  }
-    //                  else
-    //                  {
-    //                      for(SizeType i=size_;i<size_+length;++i)
-    //                          new(data_+i)T(data_[i-length]);
-    //                      for(SizeType i=size_-length-1;i!=offset-1;--i)
-    //                          data_[i+length]=data_[i];
-    //			    for(SizeType i=offset;i<offset+length;++i)
-    //				    data_[i].~T();
-    //                  }
-    //              }
-    //              size_+=length;
-    //	}
-    //          void Insert(SizeType offset,const T* data,SizeType length)
-    //          {
-    //              if(length<=0)
-    //                  return;
-    //              Allocate(offset,length);
-    //		if(data)
-    //		{
-    //			for(SizeType i=0;i<length;i++)
-    //				new(data_+offset+i)T(data[i]);
-    //		}
-    //		else
-    //		{
-    //			for(SizeType i=0;i<length;i++)
-    //				new(data_+offset+i)T();
-    //		}
-    //          }
-    //          T& Push()
-    //          {
-    //		Allocate(size_,1);
-    //		new(&Back())T();
-    //		return Back();
-    //          }
-    //          void Push(const T &copy)
-    //          {
-    //		Allocate(size_,1);
-    //		new(&Back())T(copy);
-    //          }
-    //          void Pop()
-    //          {
-    //              Back().~T();
-    //		--size_;
-    //          }
-    //          void Erase(SizeType offset,SizeType length)
-    //          {
-    //              for(SizeType i=offset;i<size_;++i)
-    //              {
-    //                  if(i+length<size_)
-    //                  {
-    //                      data_[i]=data_[i+length];
-    //                  }
-    //                  else
-    //                  {
-    //                      data_[i].~T();
-    //                  }
-    //              }
-    //		size_-=length;
-    //          }
-    //          void Clear()
-    //          {
-    //		Erase(0,size_);
-    //		if(!is_local_)
-    //		{
-    //			is_local_=true;
-    //			Allocator::Free(data_);
-    //               data_=reinterpret_cast<T*>(local_);
-    //               reserve_=Upkeep_;
-    //		}
-    //          }
-    //	void Resize(SizeType new_size)
-    //	{
-    //		if(size_<new_size)
-    //		{
-    //			Insert(size_,NULL,new_size-size_);
-    //		}
-    //		else if(size_>new_size)
-    //		{
-    //			Erase(new_size,size_-new_size);
-    //		}
-    //	}
-    //protected:
-    //	SizeType reserve_;
-    //          char local_[sizeof(T)*Upkeep_];
-    //          bool is_local_;
-    //      };
 
     template<typename ArrayType_>
     class BasicString
@@ -1390,7 +1233,7 @@ namespace wts
 
 
     template<typename Key,typename Value>
-    class SortedMap
+    class OrderedMap
     {
     public:
         struct KeyValue
@@ -1434,25 +1277,25 @@ namespace wts
         };
         typedef typename AvlTree<KeyValue,Compare>::Iterator Iterator;
     public:
-        SortedMap()
+        OrderedMap()
         {
 
         }
-		SortedMap(const SortedMap& copy)
+		OrderedMap(const OrderedMap& copy)
 		{
 			*this=copy;
 		}
-        ~SortedMap()
+        ~OrderedMap()
         {
 
         }
-		SortedMap& operator=(const SortedMap& copy)
+		OrderedMap& operator=(const OrderedMap& copy)
 		{
 			tree_=copy.tree_;
 			return *this;
 		}
 
-        inline int size()const
+        inline int Size()const
         {
             return tree_.size();
         }

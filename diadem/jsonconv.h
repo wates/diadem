@@ -7,7 +7,7 @@
 
 #include <wts/parser.h>
 
-static void ReplaceAll(std::string &str,const char *from,const char *to)
+static void ReplaceAll(wts::String &str,const char *from,const char *to)
 {
 	size_t len=strlen(from);
 	size_t lento=strlen(to);
@@ -15,7 +15,7 @@ static void ReplaceAll(std::string &str,const char *from,const char *to)
 		str.replace(i,len,to);
 }
 
-static void Unescape(std::string &str)
+static void Unescape(wts::String &str)
 {
 	ReplaceAll(str,"\\\"","\"");
 	ReplaceAll(str,"\\\\","\\");
@@ -27,7 +27,7 @@ static void Unescape(std::string &str)
 	ReplaceAll(str,"\\\t","\t");
 }
 
-static void Escape(std::string &str)
+static void Escape(wts::String &str)
 {
 	ReplaceAll(str,"\"","\\\"");
 	ReplaceAll(str,"\\","\\\\");
@@ -39,9 +39,9 @@ static void Escape(std::string &str)
 	ReplaceAll(str,"\t","\\\t");
 }
 
-static std::string Escape(const std::string &cstr)
+static wts::String Escape(const wts::String &cstr)
 {
-	std::string str=cstr;
+	wts::String str=cstr;
 	ReplaceAll(str,"\"","\\\"");
 	ReplaceAll(str,"\\","\\\\");
 	ReplaceAll(str,"/","\\/");
@@ -81,7 +81,7 @@ namespace jsp
 	struct KeyBody
 		:public Action<tStringBody>
 	{
-		std::string key;
+		wts::String key;
 		void Hit(const char *text,type &r)
 		{
 			key.assign(text);
@@ -114,7 +114,7 @@ namespace jsp
 	struct valStringBody
 		:public Action<tStringBody>
 	{
-		std::string val;
+		wts::String val;
 		void Hit(const char *text,type &r)
 		{
 			val.assign(text);
@@ -141,7 +141,7 @@ namespace json
 	struct Writer
 	{
 		int indent;
-		std::vector<int> members;
+		wts::Array<int> members;
 
 		Writer():indent(0){members.push_back(0);}
 	};
@@ -151,7 +151,7 @@ namespace json
 	};
 
 	inline
-	bool Blockstart(Writer &c,std::string &text,const std::string &key)
+	bool Blockstart(Writer &c,wts::String &text,const wts::String &key)
 	{
 		text+="\r\n";
 		for(int i=c.indent;i--;)
@@ -173,7 +173,7 @@ namespace json
 	}
 
 	inline
-		bool Blockstart(Reader &c,std::string &text,const std::string &key)
+		bool Blockstart(Reader &c,wts::String &text,const wts::String &key)
 	{
 		jsp::blockStart p;
 		const char *l=text.c_str();
@@ -185,7 +185,7 @@ namespace json
 	}
 
 	inline
-	bool Blockend(Writer &c,std::string &text)
+	bool Blockend(Writer &c,wts::String &text)
 	{
 		c.members.pop_back();
 		--c.indent;
@@ -198,7 +198,7 @@ namespace json
 	}
 
 	inline
-	bool Blockend(Reader &c,std::string &text)
+	bool Blockend(Reader &c,wts::String &text)
 	{
 		jsp::blockEnd p;
 		const char *l=text.c_str();
@@ -210,9 +210,9 @@ namespace json
 	}
 
 	template<bool dc,typename T>
-	bool RawWrite(Writer &c,std::string &text,const std::string &key,T value)
+	bool RawWrite(Writer &c,wts::String &text,const wts::String &key,T value)
 	{
-		std::stringstream ss;
+		wts::Stringstream ss;
 		if(key.size())
 		{
 			for(int i=c.indent;i--;)
@@ -236,57 +236,44 @@ namespace json
 		return true;
 	}
 
-	template<typename Parser,typename Val>
-	bool RawRead(Reader &c,std::string &text,const std::string &key,Val &value)
-	{
-		Parser p;
-		const char *l=text.c_str();
-		const char *f=l;
-		if(!p.Parse(l))
-			return false;
-		value=p.val;
-		text.erase(0,l-f);
-		return true;
-	}
-
 	inline
-	bool Convert(Writer &c,std::string &text,const std::string &key,const int value)
+	bool Convert(Writer &c,wts::String &text,const wts::String &key,const int value)
 	{
 		return RawWrite<false>(c,text,key,value);
 	}
 
 	inline
-	bool Convert(Reader &c,std::string &text,const std::string &key,int &value)
+	bool Convert(Reader &c,wts::String &text,const wts::String &key,int &value)
 	{
 		return RawRead<jsp::intPair>(c,text,key,value);
 	}
 
 	inline
-	bool Convert(Writer &c,std::string &text,const std::string &key,const float value)
+	bool Convert(Writer &c,wts::String &text,const wts::String &key,const float value)
 	{
 		return RawWrite<false>(c,text,key,value);
 	}
 
 	inline
-	bool Convert(Reader &c,std::string &text,const std::string &key,float &value)
+	bool Convert(Reader &c,wts::String &text,const wts::String &key,float &value)
 	{
 		return RawRead<jsp::floatPair>(c,text,key,value);
 	}
 
 	inline
-	bool Convert(Writer &c,std::string &text,const std::string &key,const std::string &value)
+	bool Convert(Writer &c,wts::String &text,const wts::String &key,const wts::String &value)
 	{
 		return RawWrite<true>(c,text,key,Escape(value));
 	}
 
 	inline
-	bool Convert(Reader &c,std::string &text,const std::string &key,std::string &value)
+	bool Convert(Reader &c,wts::String &text,const wts::String &key,wts::String &value)
 	{
 		return RawRead<jsp::stringPair>(c,text,key,value);
 	}
 
 	template<typename T>
-	bool Convert(Writer &c,std::string &text,const std::string &key,std::vector<T> &value)
+	bool Convert(Writer &c,wts::String &text,const wts::String &key,wts::Array<T> &value)
 	{
 		for(int i=c.indent;i--;)
 		{
@@ -308,7 +295,7 @@ namespace json
 	}
 
 	template<typename T>
-	bool Convert(Reader &c,std::string &text,const std::string &key,std::vector<T> &value)
+	bool Convert(Reader &c,wts::String &text,const wts::String &key,wts::Array<T> &value)
 	{
 		const char *l=text.c_str();
 		const char *f=l;
@@ -338,17 +325,17 @@ namespace json
 	}
 
 	template<typename T>
-	bool ConvertWrite(std::string &out,T &in)
+	bool ConvertWrite(wts::String &out,T &in)
 	{
 		json::Writer w;
-		return json::Convert(w,out,std::string(),in);
+		return json::Convert(w,out,wts::String(),in);
 	}
 
 	template<typename T>
-	bool ConvertRead(std::string &in,T &out)
+	bool ConvertRead(wts::String &in,T &out)
 	{
 		json::Reader r;
-		return json::Convert(r,in,std::string(),out);
+		return json::Convert(r,in,wts::String(),out);
 	}
 
 }
@@ -358,7 +345,7 @@ namespace json
 namespace json\
 {\
 	template<typename D>\
-	bool Convert(D &dir,std::string &text,const std::string &key,type &value)\
+	bool Convert(D &dir,wts::String &text,const wts::String &key,type &value)\
 	{\
 		return Blockstart(dir,text,key)
 

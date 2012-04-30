@@ -2,26 +2,26 @@
 #include "storage.h"
 
 #include <jpncode/jpncode.h>
+#include <wts/system.h>
 
-#include <time.h>
 #include <iostream>
 #include <fstream>
 
 std::ofstream logger;
 Storage *storage;
 
-std::string Decode(const std::string &str)
+wts::String Decode(const wts::String &str)
 {
 	jpncode::unicode *uni;
 	jpncode::Result unires;
 	{
-		unires=jpncode::utf8_unicode_charactors(str.c_str());
+		unires=jpncode::utf8_unicode_charactors(str.Data());
 		uni=new jpncode::unicode[unires.charactors+1];
-		jpncode::utf8_decode(str.c_str(),uni);
+		jpncode::utf8_decode(str.Data(),uni);
 		uni[unires.charactors]=0;
 	}
 
-	std::string ret;
+	wts::String ret;
 	int i;
 	for(i=0;i<(int)unires.charactors;i++)
 	{
@@ -40,13 +40,13 @@ std::string Decode(const std::string &str)
 			jpncode::jis0208_encode(uni+start,enc);
 			enc[res.charactors]=0;
 
-			ret.push_back(0x1b);
-			ret.push_back(0x24);
-			ret.push_back(0x42);
+			ret.Append(0x1b);
+			ret.Append(0x24);
+			ret.Append(0x42);
 			ret+=enc;
-			ret.push_back(0x1b);
-			ret.push_back(0x28);
-			ret.push_back(0x42);
+			ret.Append(0x1b);
+			ret.Append(0x28);
+			ret.Append(0x42);
 
 			delete[]enc;
 			uni[i]=tempc;
@@ -54,18 +54,18 @@ std::string Decode(const std::string &str)
 		}
 		else
 		{
-			ret.push_back(uni[i]);
+			ret.Append(uni[i]&0x7f);
 		}
 	}
 	delete uni;
 	return ret;
 }
 
-std::string Encode(const std::string &str)
+wts::String Encode(const wts::String &str)
 {
-	std::string ret;
+	wts::String ret;
 	int i;
-	for(i=0;i<(int)str.size()-6;i++)
+	for(i=0;i<(int)str.Size()-6;i++)
 	{
 		if(str[i+0]==0x1b&&
 			str[i+1]==0x24&&
@@ -74,18 +74,19 @@ std::string Encode(const std::string &str)
 			i+=3;
 			size_t start=i;
 
-			for(;i<(int)str.size()-2;i++)
+			for(;i<(int)str.Size()-2;i++)
 			{
 				if(str[i+0]==0x1b&&
 					str[i+1]==0x28&&
 					str[i+2]==0x42)
 				{
 					size_t end=i;
-					std::string from(str.c_str()+start,str.c_str()+end);
+					wts::String from;
+                    from.Assign(str.Data()+start,end-start);
 					jpncode::Result res;
-					res=jpncode::jis0208_unicode_charactors(from.c_str());
+					res=jpncode::jis0208_unicode_charactors(from.Data());
 					jpncode::unicode *uni=new jpncode::unicode[res.charactors+1];
-					res=jpncode::jis0208_decode(from.c_str(),uni);
+					res=jpncode::jis0208_decode(from.Data(),uni);
 					uni[res.charactors]=0;
 
 					res=jpncode::utf8_multibyte_charactors(uni);
@@ -103,10 +104,10 @@ std::string Encode(const std::string &str)
 		}
 		else
 		{
-			ret.push_back(str[i]);
+			ret.Append(str[i]);
 		}
 	}
-	ret.insert(ret.end(),str.begin()+i,str.end());
+	ret.Append(str.Data()+i);
 	return ret;
 }
 
@@ -151,8 +152,8 @@ IRCClient::IRCClient(wts::Observer *obs,const ServerConfig &conf)
 	obs->Append(recv_buf);
 	obs->Append(this);
 
-	printf("target: %s:%d\n",config.server_address.c_str(),config.port);
-	tcp->SetTarget(config.server_address.c_str(),config.port);
+	printf("target: %s:%d\n",config.address.Data(),config.port);
+	tcp->SetTarget(config.address.Data(),config.port&0xffff);
 	send_buf->Open();
 }
 
@@ -174,18 +175,15 @@ void IRCClient::Close()
 
 void IRCClient::Update(int something)
 {
+    UNUSED(something);
+
 	if(!enable)
 		return;
 
-	static time_t last_time=time(0);
-	if(last_time==time(0))
-		return;
-	last_time=time(0);
-
 	if(ST_PASS==status)
 	{
-		if(config.password.size())
-			MsgPass(config.password);
+		if(config.password.Size())
+            MsgPass(config.password);
 		status=ST_NICK;
 	}
 	else if(ST_NICK==status)
@@ -207,7 +205,7 @@ void IRCClient::Update(int something)
 		q["prefix"]="IRCdb";
 		q["command"]="STARTUP";
 		storage->Go(&q);
-		for(int i=0;i<(int)config.auto_channel.size();i++)
+		for(int i=0;i<(int)config.auto_channel.Size();i++)
 		{
 			MsgJoin(config.auto_channel[i].name,
 				config.auto_channel[i].password);
@@ -220,7 +218,7 @@ void IRCClient::Update(int something)
 		q.Select("queue");
 		q.OrderBy("time");
 		storage->Go(&q);
-		for(int i=0;i<storage->Result().size();i++)
+		for(int i=0;i<storage->Result().Size();i++)
 		{
 			Parameter param=SplitParam(storage->Result()[i][2]);
 			SendMsg(storage->Result()[i][1],param,storage->Result()[i][3]);
@@ -230,76 +228,80 @@ void IRCClient::Update(int something)
 	}
 }
 
-void IRCClient::SendMsg(const std::string &command,const Parameter &param,const std::string &message)
+void IRCClient::SendMsg(const wts::String &command,const Parameter &param,const wts::String &message)
 {
-	std::string line;
-	line+=command;
-	for(int i=0;i<(int)param.size();i++)
+	wts::String line;
+    line.Append(command);
+	for(int i=0;i<(int)param.Size();i++)
 	{
-		line+=" "+Decode(param[i]);
+		line+=" ";
+        line.Append(Decode(param[i]));
 	}
-	if(message.size())
-		line+=" :"+Decode(message);
-	std::cout<<"SendMsg=\""<<line<<"\""<<std::endl;
+	if(message.Size())
+    {
+		line+=" :";
+        line.Append(Decode(message));
+    }
+    std::cout<<"SendMsg=\""<<line.Data()<<"\""<<std::endl;
 	if(command=="PRIVMSG")
 	{
-		this->Transfer(reinterpret_cast<const uint8_t*>(line.c_str()),line.size());
+		this->Transfer(reinterpret_cast<const uint8_t*>(line.Data()),line.Size());
 	}
 	line+="\r\n";
-	send_buf->Transfer(reinterpret_cast<const uint8_t*>(line.c_str()),line.size());
+	send_buf->Transfer(reinterpret_cast<const uint8_t*>(line.Data()),line.Size());
 }
 
-void IRCClient::MsgPass(const std::string &pass)
+void IRCClient::MsgPass(const wts::String &pass)
 {
 	Parameter p;
-	p.push_back(pass);
+	p.Push(pass);
 	SendMsg("PASS",p);
 }
 
-void IRCClient::MsgNick(const std::string &nick)
+void IRCClient::MsgNick(const wts::String &nick)
 {
 	Parameter p;
-	p.push_back(nick);
+	p.Push(nick);
 	SendMsg("NICK",p);
 }
 
-void IRCClient::MsgUser(const std::string &username,const std::string &realname)
+void IRCClient::MsgUser(const wts::String &username,const wts::String &realname)
 {
 	Parameter p;
-	p.push_back(username);
-	p.push_back("*");
-	p.push_back("*");
+	p.Push(username);
+	p.Push("*");
+	p.Push("*");
 	SendMsg("USER",p,realname);
 }
 
-void IRCClient::MsgJoin(const std::string &name,const std::string &password)
+void IRCClient::MsgJoin(const wts::String &name,const wts::String &password)
 {
 	Parameter p;
-	p.push_back(name);
-	if(password.size())
-		p.push_back(password);
+	p.Push(name);
+	if(password.Size())
+		p.Push(password);
 	SendMsg("JOIN",p);
 }
 
-void IRCClient::MsgPong(const std::string &target)
+void IRCClient::MsgPong(const wts::String &target)
 {
 	Parameter p;
-	p.push_back(target);
+	p.Push(target);
 	SendMsg("PONG",p);
 }
 
-IRCClient::Nickname IRCClient::SplitNickname(std::string msg)
+IRCClient::Nickname IRCClient::SplitNickname(wts::String msg)
 {
 	Nickname nc;
-	int exc=msg.find('!');
-	if(exc!=msg.npos)
+	int exc=msg.Find('!');
+	if(-1 != exc)
 	{
-		nc.nick.assign(msg.c_str(),msg.c_str()+exc);
-		int at=msg.find('@',exc);
-		if(at!=msg.npos)
+		nc.nick.Assign(msg.Data(),exc);
+		int at=msg.Find('@',exc);
+		if(-1 != at)
 		{
-			nc.name.assign(msg.c_str()+exc+1,msg.c_str()+at);
-			nc.address.assign(msg.c_str()+at+1);
+			nc.name.Assign(msg.Data()+exc+1,at-(exc+1));
+			nc.address=msg.Data()+at+1;
 		}
 	}
 	Query &q=*storage->NewQuery();
@@ -311,24 +313,24 @@ IRCClient::Nickname IRCClient::SplitNickname(std::string msg)
 	return nc;
 }
 
-IRCClient::Parameter IRCClient::SplitParam(std::string msg)
+IRCClient::Parameter IRCClient::SplitParam(wts::String msg)
 {
 	Parameter p;
-	while(msg.size())
+	while(msg.Size())
 	{
-		std::string str;
-		unsigned int n=msg.find(' ');
-		if(n==msg.npos)
+		wts::String str;
+		unsigned int n=msg.Find(' ');
+		if(-1 == n)
 		{
 			str=msg;
-			msg.clear();
+			msg.Clear();
 		}
 		else
 		{
-			str.assign(msg.c_str(),msg.c_str()+n);
-			msg.erase(0,n+1);
+			str.Assign(msg.Data(),n);
+			msg.Erase(0,n+1);
 		}
-		p.push_back(str);
+		p.Push(str);
 	}
 	return p;
 }
@@ -337,49 +339,49 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 {
 	if(length<1)
 		return length;
-	std::string msg;
-	msg.assign(buffer,buffer+length);
-	logger<<Encode(msg)<<std::endl;
+	wts::String msg;
+	msg.Assign(reinterpret_cast<const char*>(buffer),length);
+    logger<<Encode(msg).Data()<<std::endl;
 
-	std::string prefix;
-	std::string command;
-	std::vector<std::string> param;
+	wts::String prefix;
+	wts::String command;
+	wts::Array<wts::String> param;
 	if(msg[0]==':')
 	{
 		//prefix
-		unsigned int n=msg.find(' ');
-		if(n==msg.npos)
+		unsigned int n=msg.Find(' ');
+		if(-1 == n)
 		{
 			prefix=msg;
-			msg.clear();
+			msg.Clear();
 		}
 		else
 		{
-			prefix.assign(msg.c_str()+1,msg.c_str()+n);
-			msg.erase(0,n+1);
+			prefix.Assign(msg.Data()+1,n-1);
+			msg.Erase(0,n+1);
 		}
 	}
 	bool bcom=false;
-	while(msg.size())
+	while(msg.Size())
 	{
-		std::string str;
+		wts::String str;
 		if(msg[0]==':')
 		{
-			str=msg.c_str()+1;
-			msg.clear();
+			str=msg.Data()+1;
+			msg.Clear();
 		}
 		else
 		{
-			unsigned int n=msg.find(' ');
-			if(n==msg.npos)
+			unsigned int n=msg.Find(' ');
+			if(-1 == n)
 			{
 				str=msg;
-				msg.clear();
+				msg.Clear();
 			}
 			else
 			{
-				str.assign(msg.c_str(),msg.c_str()+n);
-				msg.erase(0,n+1);
+				str.Assign(msg.Data(),n);
+				msg.Erase(0,n+1);
 			}
 		}
 		if(!bcom)
@@ -389,23 +391,24 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		}
 		else
 		{
-			param.push_back(Encode(str));
+			param.Push(Encode(str));
 		}
 	}
 
-	last_ping=time(0);
+	last_ping=wts::GetTime();
 
 	if(command=="375")
 	{
 		//start of motd
-		MOTD.clear();
-		if(param.size()>1)
+		MOTD.Clear();
+		if(param.Size()>1)
 			MOTD_first=param[1];
 	}
-	else if(command=="372" && param.size()>1)
+	else if(command=="372" && param.Size()>1)
 	{
 		//motd msg
-		MOTD+=param[1]+"\r\n";
+        MOTD.Append(param[1]);
+        MOTD+="\r\n";
 	}
 	else if(command=="376")
 	{
@@ -418,7 +421,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 
 		status=ST_JOIN_WAIT;
 	}
-	else if(command=="JOIN"&&param.size()>0)
+	else if(command=="JOIN"&&param.Size()>0)
 	{
 		{
 			Query &q=*storage->NewQuery();
@@ -434,7 +437,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 			q.Where("nick_name")=nc.nick;
 			q.Where("channel_name")=param[0];
 			storage->Go(&q);
-			if(storage->Result().size()==0)
+			if(storage->Result().Size()==0)
 			{
 				Query &q=*storage->NewQuery();
 				q.Insert("join_nick");
@@ -453,7 +456,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 			}
 		}
 	}
-	else if((command=="PART"||command=="KICK")&&param.size()>0)
+	else if((command=="PART"||command=="KICK")&&param.Size()>0)
 	{
 		Nickname nc;
 		nc=SplitNickname(prefix);
@@ -472,7 +475,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		q.Where("nick_name")=nc.nick;
 		storage->Go(&q);
 	}
-	else if(command=="332"&&param.size()>2)
+	else if(command=="332"&&param.Size()>2)
 	{
 		Query &q=*storage->NewQuery();
 		q.Update("channel");
@@ -480,7 +483,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		q["topic"]=param[2];
 		storage->Go(&q);
 	}
-	else if(command=="353"&&param.size()>2)
+	else if(command=="353"&&param.Size()>2)
 	{
 		//"( "=" / "*" / "@" ) <channel>
 		//:[ "@" / "+" ] <nick> *( " " [ "@" / "+" ] <nick> )
@@ -498,13 +501,13 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 			ch.type=type;
 			Parameter names=SplitParam(param[3]);
 
-			for(int i=0;i<(int)names.size();i++)
+			for(int i=0;i<(int)names.Size();i++)
 			{
 				bool is_operator=false;
 				//drop '@'
 				if(names[i][0]=='@')
 				{
-					names[i].erase(0,1);
+					names[i].Erase(0,1);
 					is_operator=true;
 				}
 				Query &q=*storage->NewQuery();
@@ -512,7 +515,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 				q.Where("nick_name")=names[i];
 				q.Where("channel_name")=param[2];
 				storage->Go(&q);
-				if(storage->Result().size()==0)
+				if(storage->Result().Size()==0)
 				{
 					Query &q=*storage->NewQuery();
 					q.Insert("join_nick");
@@ -533,22 +536,22 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 				}
 			}
 
-			ch.names.insert(ch.names.begin(),names.begin(),names.end());
+			ch.names.Insert(0,names.Data(),names.Size());
 		}
 	}
 	else if(command=="PING")
 	{
-		if(param.size()==1)
+		if(param.Size()==1)
 		{
 			MsgPong(param[0]);
 		}
 	}
-	else if((command=="NOTICE"||command=="PRIVMSG" )&&param.size()>1)
+	else if((command=="NOTICE"||command=="PRIVMSG" )&&param.Size()>1)
 	{
-		std::string notice=command=="NOTICE"?"1":"0";
+		wts::String notice=command=="NOTICE"?"1":"0";
 		Query &q=*storage->NewQuery();
 		q.Insert("message");
-		if(prefix.size())
+		if(prefix.Size())
 		{
 			Nickname nc;
 			nc=SplitNickname(prefix);
@@ -566,7 +569,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		storage->Go(&q);
 
 	}
-	else if(command=="NICK"&&param.size()>0)
+	else if(command=="NICK"&&param.Size()>0)
 	{
 		Nickname nc;
 		nc=SplitNickname(prefix);
@@ -576,15 +579,15 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		q["nick_name"]=param[0];
 		storage->Go(&q);
 	}
-	else if(command=="MODE"&&param.size()>1)
+	else if(command=="MODE"&&param.Size()>1)
 	{
-		std::string &ch=param[0];
-		std::string mode=param[1];
+		wts::String &ch=param[0];
+		wts::String mode=param[1];
 		char type=mode[0];
-		for(int i=0;i<mode.length()-1&&i+2<param.size();i++)
+		for(int i=0;i<mode.Size()-1&&i+2<param.Size();i++)
 		{
 			char c=mode[i+1];
-			std::string &target=param[i+2];
+			wts::String &target=param[i+2];
 			if('o'==c)
 			{
 				if('+'==type)
@@ -615,9 +618,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 
 	int numeric=0;
 	{
-		std::stringstream ss;
-		ss<<command;
-		ss>>numeric;
+        numeric=atoi(command.Data());
 	}
 	if(command=="NICK"||
 		command=="MODE"||
@@ -635,18 +636,18 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 	{
 		Query &q=*storage->NewQuery();
 		q.Insert("event");
-		if(!prefix.empty())
+		if(prefix.Size())
 		{
 			Nickname nc;
 			nc=SplitNickname(prefix);
 			q["prefix"]=nc.nick;
 		}
 		q["command"]=command;
-		for(int i=0;i<param.size();i++)
+		for(int i=0;i<param.Size();i++)
 		{
-			std::stringstream ss;
+			wts::String ss;
 			ss<<"param"<<(i+1);
-			q[ss.str().c_str()]=param[i];
+			q[ss.Data()]=param[i];
 		}
 		storage->Go(&q);
 	}
@@ -656,49 +657,35 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 }
 
 
-bool ReadFile(std::string filename,std::vector<char> &out)
+bool ReadFile(wts::String filename,wts::Array<char> &out)
 {
     std::ifstream f;
-    f.open(filename.c_str(),std::ios_base::in|std::ios_base::binary);
+    f.open(filename.Data(),std::ios_base::in|std::ios_base::binary);
     if(!f.is_open())
         return false;
     f.seekg(0,std::ios::end);
-    std::streamsize sz=f.tellg();
+    int sz=static_cast<int>(f.tellg());
     f.seekg(0,std::ios::beg);
-    out.resize(sz);
-    f.read(&out.front(),sz);
+    out.Resize(sz+1);
+    f.read(&out.Front(),sz);
     f.close();
-    return true;
-}
-
-bool ReadFile(std::string filename,std::string &out)
-{
-    std::ifstream f;
-    f.open(filename.c_str(),std::ios_base::in);
-    if(!f.is_open())
-        return false;
-    while(!f.eof()&&f.peek())
-        out.push_back(f.get());
-    f.close();
+    out.Back()='\0';
     return true;
 }
 
 template<typename T>
-bool ConvertRead(std::string &in,T &out)
+bool ConvertRead(wts::String &in,T &out)
 {
     json::Reader r;
-    return json::Convert(r,in,std::string(),out);
+    return json::Convert(r,in,wts::String(),out);
 }
 #ifndef _WIN32
 #include <unistd.h>
 #endif
 
-#include "wts/system.h"
-#include <Windows.h>
-
 int main(int argc,char **argv)
 {
-    std::string config_path;
+    wts::String config_path;
 
     if(2 == argc)
     {
@@ -709,14 +696,17 @@ int main(int argc,char **argv)
         config_path="../../config.txt";
     }
 
-    char cc[1024];
-    GetCurrentDirectory(1024,cc);
-    
 
-	std::string text;
-    ReadFile(config_path.c_str(),text);
+	wts::Array<char> filedata;
+    ReadFile(config_path.Data(),filedata);
+
+    wts::JsonReader r={filedata.Data(),filedata.Data()+filedata.Size()};
 	Config conf;
-	ConvertRead(text,conf);
+	if(!Convert(r,conf,""))
+    {
+        std::cout<<"syntax error -> "<<r.position;
+        return -1;
+    }
 
 
 	{
@@ -733,7 +723,7 @@ int main(int argc,char **argv)
 
 	std::cout<<"Startup.."<<std::endl;
 	storage=CreateStorage();
-    if(storage->Open(conf.db_address.c_str(),conf.db_port,conf.db_database.c_str(),conf.db_user.c_str(),conf.db_password.c_str()))
+    if(storage->Open(conf.db_address.Data(),conf.db_port,conf.db_database.Data(),conf.db_user.Data(),conf.db_password.Data()))
 	{
 		std::cout<<"Storage open."<<std::endl;
 	}
@@ -749,14 +739,14 @@ int main(int argc,char **argv)
 
 	IRCClient *irc=new IRCClient(obs,conf.irc_server);
 
-	irc->last_ping=time(0);
+    irc->last_ping=wts::GetTime();
 	for(;;)
 	{
 		obs->Update(0);
 #ifndef _WIN32
 		usleep(1000);
 #endif
-		if(irc->last_ping+1200<time(0))
+		if(irc->last_ping+1200*1000<wts::GetTime())
 		{
 			break;
 		}

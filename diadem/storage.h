@@ -1,22 +1,21 @@
 
-#include <string>
-#include <vector>
+#include <wts/container.h>
 
 struct Query
 {
-	virtual void Insert(const std::string &table)=0;
-	virtual void Replace(const std::string &table)=0;
-	virtual void Update(const std::string &table)=0;
-	virtual void Select(const std::string &table)=0;
-	virtual void Delete(const std::string &table)=0;
-	virtual void OrderBy(const std::string &key,bool desc=false)=0;
+	virtual void Insert(const wts::String &table)=0;
+	virtual void Replace(const wts::String &table)=0;
+	virtual void Update(const wts::String &table)=0;
+	virtual void Select(const wts::String &table)=0;
+	virtual void Delete(const wts::String &table)=0;
+	virtual void OrderBy(const wts::String &key,bool desc=false)=0;
 	virtual void Limit(int start,int records)=0;
-	virtual std::string& Where(const char *key)=0;
-	virtual std::string& operator[](const char *name)=0;
-	virtual std::string& Set(const char *name,bool Escape=true)=0;
+	virtual wts::String& Where(const char *key)=0;
+	virtual wts::String& operator[](const char *name)=0;
+	virtual wts::String& Set(const char *name,bool Escape=true)=0;
 };
 
-typedef std::vector<std::vector<std::string> > StorageResult;
+typedef wts::Array<wts::Array<wts::String> > StorageResult;
 
 class Storage
 {
@@ -26,7 +25,7 @@ public:
 
 	virtual Query* NewQuery()=0;
 	virtual bool Go(Query* q)=0;
-	virtual void ClearContent(const std::string &table)=0;
+	virtual void ClearContent(const wts::String &table)=0;
 	virtual StorageResult &Result()=0;
 };
 

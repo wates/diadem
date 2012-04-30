@@ -6,38 +6,38 @@
 struct QueryBody
 	:public Query
 {
-	std::string dmy;
-	void Insert(const std::string &table)
+	wts::String dmy;
+	void Insert(const wts::String &table)
 	{
 	}
-	std::string &operator[](const char *name)
-	{
-		return dmy;
-	}
-	std::string& Set(const char *name,bool Escape=true)
+	wts::String &operator[](const char *name)
 	{
 		return dmy;
 	}
-	void OrderBy(const std::string &key,bool desc=false)
+	wts::String& Set(const char *name,bool Escape=true)
+	{
+		return dmy;
+	}
+	void OrderBy(const wts::String &key,bool desc=false)
 	{
 	}
 	void Limit(int low,int high)
 	{
 	}
 
-	void Update(const std::string &name)
+	void Update(const wts::String &name)
 	{
 	}
-	void Replace(const std::string &name)
+	void Replace(const wts::String &name)
 	{
 	}
-	void Select(const std::string &name)
+	void Select(const wts::String &name)
 	{
 	}
-	void Delete(const std::string &name)
+	void Delete(const wts::String &name)
 	{
 	}
-	std::string& Where(const char *key)
+	wts::String& Where(const char *key)
 	{
 		return dmy;
 	}
@@ -50,7 +50,7 @@ class StorageBody
 	{
 		return true;
 	}
-	void ClearContent(const std::string &table)
+	void ClearContent(const wts::String &table)
 	{
 	}
 	Query* NewQuery()

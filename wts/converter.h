@@ -5,6 +5,7 @@
 
 
 #include "container.h"
+#include "parser.h"
 
 namespace wts
 {
@@ -425,6 +426,203 @@ namespace wts
         c.PopIndent();
         c.output.Push('}');
 		return true;
+	}
+
+    //////////////////////////////
+    //
+    namespace json
+    {
+        using namespace parser;
+
+        static void ReplaceAll(wts::String &str,const char *from,const char *to)
+        {
+	        size_t len=strlen(from);
+	        size_t lento=strlen(to);
+	        for(int i=str.Find(from);i!=-1;i=str.Find(from,i+lento))
+		        str.Replace(i,len,to);
+        }
+
+        static void Unescape(wts::String &str)
+        {
+	        ReplaceAll(str,"\\\"","\"");
+	        ReplaceAll(str,"\\/","/");
+	        ReplaceAll(str,"\\\b","\b");
+	        ReplaceAll(str,"\\\f","\f");
+	        ReplaceAll(str,"\\\n","\n");
+	        ReplaceAll(str,"\\\r","\r");
+	        ReplaceAll(str,"\\\t","\t");
+	        ReplaceAll(str,"\\\\","\\");
+        }
+
+	    typedef CharRange<'0','9'> tNum;
+	    typedef CharRange<'1','9'> tNonZeroNum;
+	    typedef Or<Rule<tNonZeroNum,Any<tNum> >,Char<'0'> > tUnsignedInt;
+	    typedef Rule<Option<Char<'+'> >,tUnsignedInt> tPositiveNum;
+	    typedef Rule<Char<'-'>,tUnsignedInt > tNegativeNum;
+	    typedef Or<tPositiveNum,tNegativeNum> tInt;
+
+	    typedef Or<tNum,CharRange<'a','f'>,CharRange<'A','F'> > tHex;
+
+	    typedef Rule<Char<'E','e'>,Option<Char<'+','-'> >,More<tNum> > tLog;
+	    typedef Rule<tInt,Option<tLog> > tLogInt;
+
+	    typedef Rule<tInt,Char<'.'>,More<tNum>,Option<tLogInt> > tFloat;
+
+        typedef Text<'t','r','u','e'> tTrue;
+        typedef Text<'f','a','l','s','e'> tFalse;
+        typedef Text<'n','u','l','l'> tNull;
+
+	    typedef More<Or<Char<0x20>,Char<0x09>,Char<0x0d>,Char<0x0a> > > tS;
+	    typedef Option<tS> tOS;
+
+	    typedef Rule<Char<'\\'>,Or<Char<'"','\\','/','b','f','n','r','t'>,Rule<Char<'u'>,tHex,tHex,tHex,tHex> > > tEscape;
+
+	    typedef Any<Or<tEscape,Not<Char<'"','\\'> > > > tStringBody;
+
+	    struct KeyBody
+		    :public Action<tStringBody>
+	    {
+		    wts::String key;
+		    void Hit(const char *text,type &r)
+		    {
+                UNUSED(r);
+
+			    key=text;
+			    Unescape(key);
+		    }
+	    };
+
+	    typedef Rule<Char<'"'>,KeyBody,Char<'"'> > Key;
+
+	    struct valInt
+		    :public Action<tLogInt>
+	    {
+		    int val;
+		    void Hit(const char *text,type &r)
+		    {
+                UNUSED(r);
+
+			    val=atoi(text);
+		    }
+	    };
+
+	    struct valFloat
+		    :public Action<tFloat>
+	    {
+		    float val;
+		    void Hit(const char *text,type &r)
+		    {
+                UNUSED(r);
+
+			    val=(float)atof(text);
+		    }
+	    };
+
+	    struct valStringBody
+		    :public Action<tStringBody>
+	    {
+		    wts::String val;
+		    void Hit(const char *text,type &r)
+		    {
+                UNUSED(r);
+
+			    val=text;
+			    Unescape(val);
+		    }
+	    };
+	    typedef Rule<Char<'"'>,valStringBody,Char<'"'> > valString;
+
+	    typedef Rule<tOS,Option<Char<','> >,tOS,Key,tOS,Char<':'> > single;
+	    typedef Rule<Option<single>,tOS,valInt,tOS> intPair;
+	    typedef Rule<Option<single>,tOS,valFloat,tOS> floatPair;
+	    typedef Rule<Option<single>,tOS,valString,tOS> stringPair;
+
+	    typedef Rule<Option<single>,tOS,Char<'{'>,tOS> objectStart;
+	    typedef Rule<tOS,Char<'}'>,tOS> objectEnd;
+	    typedef Rule<tOS,Char<'['>,tOS> arrayStart;
+	    typedef Rule<tOS,Char<','>,tOS> arraySeparate;
+	    typedef Rule<tOS,Char<']'>,tOS> arrayEnd;
+
+        template<typename T>struct PairSelector;
+
+        template<>struct PairSelector<int>{typedef intPair type;};
+        template<>struct PairSelector<float>{typedef floatPair type;};
+        template<>struct PairSelector<wts::String>{typedef stringPair type;};
+    }
+
+  	struct JsonReader
+	{
+		const char *position;
+		const char *end;
+	};
+
+    template<typename T>
+    bool ConvertPair(JsonReader &c,T &value,const char *info)
+    {
+        UNUSED(info);
+        typename json::PairSelector<T>::type p;
+        if(!p.Parse(c.position) /*&& p.key != info */)
+            return false;
+        value=p.val;
+        return true;
+    }
+
+    bool Convert(JsonReader &c,int &value,const char *info)
+    {
+        return ConvertPair(c,value,info);
+    }
+
+    bool Convert(JsonReader &c,float &value,const char *info)
+    {
+        return ConvertPair(c,value,info);
+    }
+
+    bool Convert(JsonReader &c,wts::String &value,const char *info)
+    {
+        return ConvertPair(c,value,info);
+    }
+
+    template<typename T,typename TypeSize>
+    inline bool Convert(JsonReader &c,Array<T,TypeSize> &v,const char *info)
+    {
+        UNUSED(info);
+        json::single si;
+        json::arrayStart as;
+        json::arraySeparate ap;
+        json::arrayEnd ae;
+        if(si.Parse(c.position) && as.Parse(c.position) )
+        {
+            for(int n=0;;n++)
+            {
+                if(n&&!ap.Parse(c.position))
+                    return false;
+                if(!Convert(c,v.Push(),""))
+                    return false;
+                if(ae.Parse(c.position))
+                    break;
+            }
+            return true;
+        }
+        return false;
+    }
+
+	//template<int N,typename T>
+	//inline bool Convert(JsonReader &c,T (&v)[N],const char *info)
+	//{
+	//	return true;
+	//}
+
+	inline bool ObjectStart(JsonReader &c,const char *info)
+	{
+        UNUSED(info);
+        json::objectStart p;
+		return p.Parse(c.position);
+	}
+
+	inline bool ObjectEnd(JsonReader &c)
+	{
+        json::objectEnd p;
+        return p.Parse(c.position);
 	}
 
     /////////////////////////////
