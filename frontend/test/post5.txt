@@ -1,0 +1,2 @@
+{"method":"Privmsg","channel":"#ircdb","message":"もじこーど"}
+

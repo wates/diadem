@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+    <script type="text/javascript" language="javascript" src="jq.js"></script>
+
+    <script type="text/javascript" language="javascript" src="json2.js"></script>
+
+    <script type="text/javascript" language="javascript" src="wsgi.js"></script>
+
+    <title>ircdb</title>
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+    <link href="default.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <!-- start header -->
+    <div id="header">
+        <div id="menu">
+            <ul id="menu_list">
+                <li><button id="menu_system">system</button></li>
+            </ul>
+        </div>
+    </div>
+    <!-- end header -->
+    <div id="wrapper">
+        <!-- start page -->
+        <div id="page">
+            <!-- start content -->
+            <div id="content">
+                <div class="post" id="system">
+                     <input type="text" id="join_channel" value="" />
+                     <button id="join_channel_button">Join</button>
+                </div>
+                <div class="post" id="channel">
+                    <div id="channels">
+                    </div>
+                    <div class="meta">
+                        <input type="text" id="say_command"value="" />
+                        <button id="say_button">Say</button>
+                        <ul id="server_log">
+                        </ul>
+                        <ul class="status">
+                            <li>last response: <div id="last_response_time"></div></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- end content -->
+            <!-- start sidebar -->
+            <div id="sidebar">
+                <ul>
+                    <li>
+                        <div id="nicknames">
+                        </div>
+                    </li>
+                </ul>
+                <input type="submit" value="Leave Channel" onclick="partChannel()" />
+            </div>
+            <!-- end sidebar -->
+            <div style="clear: both;">
+                &nbsp;</div>
+        </div>
+    </div>
+    <!-- end page -->
+    <!-- start footer -->
+    <div id="footer">
+        <p id="legal">
+        </p>
+    </div>
+    <!-- end footer -->
+</body>
+</html>
