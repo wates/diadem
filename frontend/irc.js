@@ -1,4 +1,6 @@
 
+var IRC = new Object();
+
 var active_channel;
 var next_polling_count=10;
 

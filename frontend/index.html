@@ -2,47 +2,46 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-
     <script type="text/javascript" language="javascript" src="jq.js"></script>
-
-    <script type="text/javascript" language="javascript" src="json2.js"></script>
-
-    <script type="text/javascript" language="javascript" src="wsgi.js"></script>
-
-    <title>ircdb</title>
-    <meta name="keywords" content="" />
-    <meta name="description" content="" />
-    <link href="default.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" language="javascript" src="irc.js"></script>
+    <script type="text/javascript" language="javascript" src="bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" language="javascript" src="bootstrap/css/bootstrap.css"></script>
+    <title>diadem</title>
 </head>
 <body>
-    <!-- start header -->
-    <div id="header">
-        <div id="menu">
+    <div id="header" class="navbar-fixed-top">
+        <div id="menu" class="navber-inner container">
             <ul id="menu_list">
-                <li><button id="menu_system">system</button></li>
+                <li>
+                    <button id="menu_system">
+                        system</button></li>
             </ul>
         </div>
     </div>
-    <!-- end header -->
     <div id="wrapper">
         <!-- start page -->
         <div id="page">
             <!-- start content -->
             <div id="content">
                 <div class="post" id="system">
-                     <input type="text" id="join_channel" value="" />
-                     <button id="join_channel_button">Join</button>
+                    <input type="text" id="join_channel" value="" />
+                    <button id="join_channel_button">
+                        Join</button>
                 </div>
                 <div class="post" id="channel">
                     <div id="channels">
                     </div>
                     <div class="meta">
-                        <input type="text" id="say_command"value="" />
-                        <button id="say_button">Say</button>
+                        <input type="text" id="say_command" value="" />
+                        <button id="say_button">
+                            Say</button>
                         <ul id="server_log">
                         </ul>
                         <ul class="status">
-                            <li>last response: <div id="last_response_time"></div></li>
+                            <li>last response:
+                                <div id="last_response_time">
+                                </div>
+                            </li>
                         </ul>
                     </div>
                 </div>
