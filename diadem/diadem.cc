@@ -171,8 +171,6 @@ void IRCClient::Close()
 	std::cout<<"Close"<<std::endl;
 }
 
-#include <ctime>
-
 void IRCClient::Update(int something)
 {
     UNUSED(something);
@@ -202,8 +200,8 @@ void IRCClient::Update(int something)
 		storage->ClearContent("channel");
 		Query &q=*storage->NewQuery();
 		q.Insert("event");
-		q["prefix"]="IRCdb";
-		q["command"]="STARTUP";
+		q.Set("prefix","IRCdb");
+		q.Set("command","STARTUP");
 		storage->Go(&q);
 		for(int i=0;i<(int)config.auto_channel.Size();i++)
 		{
@@ -231,23 +229,21 @@ void IRCClient::Update(int something)
 void IRCClient::SendMsg(const wts::String &command,const Parameter &param,const wts::String &message)
 {
 	wts::String line;
-    line.Append(command);
+    line<<command;
 	for(int i=0;i<(int)param.Size();i++)
 	{
-		line+=" ";
-        line.Append(Decode(param[i]));
+		line<<" "<<Decode(param[i]);
 	}
 	if(message.Size())
     {
-		line+=" :";
-        line.Append(Decode(message));
+		line<<" :"<<Decode(message);
     }
     std::cout<<"SendMsg=\""<<line.Data()<<"\""<<std::endl;
 	if(command=="PRIVMSG")
 	{
 		this->Transfer(reinterpret_cast<const uint8_t*>(line.Data()),line.Size());
 	}
-	line+="\r\n";
+	line<<"\r\n";
 	send_buf->Transfer(reinterpret_cast<const uint8_t*>(line.Data()),line.Size());
 }
 
@@ -306,9 +302,9 @@ IRCClient::Nickname IRCClient::SplitNickname(wts::String msg)
 	}
 	Query &q=*storage->NewQuery();
 	q.Replace("user");
-	q["nick"]=nc.nick;
-	q["realname"]=nc.name;
-	q["hostname"]=nc.address;
+	q.Set("nick",nc.nick);
+	q.Set("realname",nc.name);
+	q.Set("hostname",nc.address);
 	storage->Go(&q);
 	return nc;
 }
@@ -415,8 +411,8 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		//end of motd
 		Query &q=*storage->NewQuery();
 		q.Insert("motd");
-		q["server"]=MOTD_first;
-		q["message"]=MOTD;
+		q.Set("server",MOTD_first);
+		q.Set("message",MOTD);
 		storage->Go(&q);
 
 		status=ST_JOIN_WAIT;
@@ -426,7 +422,7 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		{
 			Query &q=*storage->NewQuery();
 			q.Replace("channel");
-			q["name"]=param[0];
+			q.Set("name",param[0]);
 			storage->Go(&q);
 		}
 		{
@@ -434,24 +430,24 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 			nc=SplitNickname(prefix);
 			Query &q=*storage->NewQuery();
 			q.Select("join_nick");
-			q.Where("nick_name")=nc.nick;
-			q.Where("channel_name")=param[0];
+			q.Where("nick_name",nc.nick);
+			q.Where("channel_name",param[0]);
 			storage->Go(&q);
 			if(storage->Result().Size()==0)
 			{
 				Query &q=*storage->NewQuery();
 				q.Insert("join_nick");
-				q["nick_name"]=nc.nick;
-				q["channel_name"]=param[0];
+				q.Set("nick_name",nc.nick);
+				q.Set("channel_name",param[0]);
 				storage->Go(&q);
 			}
 			else
 			{
 				Query &q=*storage->NewQuery();
 				q.Update("join_nick");
-				q.Where("nick_name")=nc.nick;
-				q.Where("channel_name")=param[0];
-				q.Set("time",false)="CURRENT_TIMESTAMP";
+				q.Where("nick_name",nc.nick);
+				q.Where("channel_name",param[0]);
+				q.Set("time","CURRENT_TIMESTAMP",false);
 				storage->Go(&q);
 			}
 		}
@@ -462,8 +458,8 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		nc=SplitNickname(prefix);
 		Query &q=*storage->NewQuery();
 		q.Delete("join_nick");
-		q.Where("nick_name")=nc.nick;
-		q.Where("channel_name")=param[0];
+		q.Where("nick_name",nc.nick);
+		q.Where("channel_name",param[0]);
 		storage->Go(&q);
 	}
 	else if(command=="QUIT")
@@ -472,15 +468,15 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		nc=SplitNickname(prefix);
 		Query &q=*storage->NewQuery();
 		q.Delete("join_nick");
-		q.Where("nick_name")=nc.nick;
+		q.Where("nick_name",nc.nick);
 		storage->Go(&q);
 	}
 	else if(command=="332"&&param.Size()>2)
 	{
 		Query &q=*storage->NewQuery();
 		q.Update("channel");
-		q.Where("name")=param[1];
-		q["topic"]=param[2];
+		q.Where("name",param[1]);
+		q.Set("topic",param[2]);
 		storage->Go(&q);
 	}
 	else if(command=="353"&&param.Size()>2)
@@ -512,26 +508,26 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 				}
 				Query &q=*storage->NewQuery();
 				q.Select("join_nick");
-				q.Where("nick_name")=names[i];
-				q.Where("channel_name")=param[2];
+				q.Where("nick_name",names[i]);
+				q.Where("channel_name",param[2]);
 				storage->Go(&q);
 				if(storage->Result().Size()==0)
 				{
 					Query &q=*storage->NewQuery();
 					q.Insert("join_nick");
 					if(is_operator)
-						q["is_operator"]="1";
-					q["nick_name"]=names[i];
-					q["channel_name"]=param[2];
+						q.Set("is_operator","1");
+					q.Set("nick_name",names[i]);
+					q.Set("channel_name",param[2]);
 					storage->Go(&q);
 				}
 				else
 				{
 					Query &q=*storage->NewQuery();
 					q.Update("join_nick");
-					q.Where("nick_name")=names[i];
-					q.Where("channel_name")=param[2];
-					q.Set("time",false)="CURRENT_TIMESTAMP";
+					q.Where("nick_name",names[i]);
+					q.Where("channel_name",param[2]);
+					q.Set("time","CURRENT_TIMESTAMP",false);
 					storage->Go(&q);
 				}
 			}
@@ -555,17 +551,17 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		{
 			Nickname nc;
 			nc=SplitNickname(prefix);
-			q["nick"]=nc.nick;
+			q.Set("nick",nc.nick);
 		}
 		else
 		{
-			q["nick"]="";
+			q.Set("nick","",false);
 		}
 		//param[0] : channel or user
 		//param[1] : message
-		q["target"]=param[0];
-		q["text"]=param[1];
-		q["is_notice"]=notice;
+		q.Set("target",param[0]);
+		q.Set("text",param[1]);
+		q.Set("is_notice",notice);
 		storage->Go(&q);
 
 	}
@@ -575,8 +571,8 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		nc=SplitNickname(prefix);
 		Query &q=*storage->NewQuery();
 		q.Update("join_nick");
-		q.Where("nick_name")=nc.nick;
-		q["nick_name"]=param[0];
+		q.Where("nick_name",nc.nick);
+		q.Set("nick_name",param[0]);
 		storage->Go(&q);
 	}
 	else if(command=="MODE"&&param.Size()>1)
@@ -594,20 +590,20 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 				{
 					Query &q=*storage->NewQuery();
 					q.Update("join_nick");
-					q.Where("nick_name")=target;
-					q.Where("channel_name")=ch;
-					q.Set("time",false)="CURRENT_TIMESTAMP";
-					q["is_operator"]="1";
+					q.Where("nick_name",target);
+					q.Where("channel_name",ch);
+					q.Set("time","CURRENT_TIMESTAMP",false);
+					q.Set("is_operator","1");
 					storage->Go(&q);
 				}
 				else if('-'==type)
 				{
 					Query &q=*storage->NewQuery();
 					q.Update("join_nick");
-					q.Where("nick_name")=target;
-					q.Where("channel_name")=ch;
-					q.Set("time",false)="CURRENT_TIMESTAMP";
-					q["is_operator"]="0";
+					q.Where("nick_name",target);
+					q.Where("channel_name",ch);
+					q.Set("time","CURRENT_TIMESTAMP",false);
+					q.Set("is_operator","0");
 					storage->Go(&q);
 				}
 			}
@@ -640,14 +636,14 @@ int IRCClient::Transfer(const uint8_t *buffer,int length)
 		{
 			Nickname nc;
 			nc=SplitNickname(prefix);
-			q["prefix"]=nc.nick;
+			q.Set("prefix",nc.nick);
 		}
-		q["command"]=command;
+		q.Set("command",command);
 		for(int i=0;i<param.Size();i++)
 		{
 			wts::String ss;
 			ss<<"param"<<(i+1);
-			q[ss.Data()]=param[i];
+			q.Set(ss.Data(),param[i]);
 		}
 		storage->Go(&q);
 	}
@@ -672,10 +668,6 @@ bool ReadFile(wts::String filename,wts::Array<char> &out)
     out.Back()='\0';
     return true;
 }
-
-#ifndef _WIN32
-#include <unistd.h>
-#endif
 
 int main(int argc,char **argv)
 {
@@ -737,9 +729,7 @@ int main(int argc,char **argv)
 	for(;;)
 	{
 		obs->Update(0);
-#ifndef _WIN32
-		usleep(1000);
-#endif
+        wts::Sleep(1);
 		if(irc->last_ping+1200*1000<wts::GetTime())
 		{
 			break;

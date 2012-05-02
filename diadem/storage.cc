@@ -7,50 +7,44 @@ struct QueryBody
 	:public Query
 {
 	wts::String dmy;
-	void Insert(const wts::String &table)
+	void Insert(const wts::String &)
 	{
 	}
-	wts::String &operator[](const char *name)
-	{
-		return dmy;
-	}
-	wts::String& Set(const char *name,bool Escape=true)
-	{
-		return dmy;
-	}
-	void OrderBy(const wts::String &key,bool desc=false)
+	void OrderBy(const wts::String &,bool)
 	{
 	}
-	void Limit(int low,int high)
+	void Limit(int ,int )
 	{
 	}
 
-	void Update(const wts::String &name)
+	void Update(const wts::String &)
 	{
 	}
-	void Replace(const wts::String &name)
+	void Replace(const wts::String &)
 	{
 	}
-	void Select(const wts::String &name)
+	void Select(const wts::String &)
 	{
 	}
-	void Delete(const wts::String &name)
+	void Delete(const wts::String &)
 	{
 	}
-	wts::String& Where(const char *key)
+    void Where(const char *,const wts::String&)
 	{
-		return dmy;
+	}
+	void Set(const char *,const wts::String&,bool)
+	{
 	}
 };
 
 class StorageBody
 	:public Storage
 {
-	bool Open(const char *address,int port,const char *database,const char *user,const char *password)
+	bool Open(const char *,int ,const char *,const char *,const char *)
 	{
 		return true;
 	}
-	void ClearContent(const wts::String &table)
+	void ClearContent(const wts::String &)
 	{
 	}
 	Query* NewQuery()

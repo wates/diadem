@@ -10,9 +10,8 @@ struct Query
 	virtual void Delete(const wts::String &table)=0;
 	virtual void OrderBy(const wts::String &key,bool desc=false)=0;
 	virtual void Limit(int start,int records)=0;
-	virtual wts::String& Where(const char *key)=0;
-	virtual wts::String& operator[](const char *name)=0;
-	virtual wts::String& Set(const char *name,bool Escape=true)=0;
+    virtual void Where(const char *key,const wts::String &value)=0;
+	virtual void Set(const char *name,const wts::String &value,bool Escape=true)=0;
 };
 
 typedef wts::Array<wts::Array<wts::String> > StorageResult;
