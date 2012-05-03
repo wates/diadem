@@ -6,7 +6,6 @@
 struct QueryBody
 	:public Query
 {
-	wts::String dmy;
 	void Insert(const wts::String &)
 	{
 	}
