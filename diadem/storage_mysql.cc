@@ -36,10 +36,6 @@ struct QueryBody
 		this->table=table;
 		com=COM_INSERT;
 	}
-	wts::String &operator[](const char *name)
-	{
-		return Set(name);
-	}
 	void Update(const wts::String &table)
 	{
 		com=COM_UPDATE;
@@ -60,14 +56,14 @@ struct QueryBody
 		com=COM_DELETE;
 		this->table=table;
 	}
-	wts::String& Where(const char *key)
+	void Where(const char *key,const wts::String &value)
 	{
-		return wheres[key];
+		wheres[key]=value;
 	}
-	wts::String& Set(const char *name,bool Escape=true)
+	void Set(const char *name,const wts::String &value,bool Escape=true)
 	{
 		values_escape[name]=Escape;
-		return values[name];
+		values[name]=value;
 	}
 	wts::String Escape(const wts::String &in)
 	{
