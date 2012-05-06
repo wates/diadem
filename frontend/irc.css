@@ -1,20 +1,22 @@
 .channel_log
 {
-    font-family:monospace;
-    height:500px;
+    /*font-family:monospace;*/
+    font-size:12px;
+    height:300px;
 }
 
-.channel_log ul {
-	margin: 0;
-	padding: 0px 0 0 2px;
+.channel_log {
+	margin: 0px;
+	padding: 0px 0px 0px 2px;
 	list-style: none;
 	line-height: normal;
+	overflow:auto;
 }
 
 .channel_log li {
-	margin: 0;
-	padding: 0px 0 0 2px;
-	display: block;
+	margin: 0px;
+	padding: 0px 0px 0px 0px;
+	display:block;
 }
 
 .privmsg 

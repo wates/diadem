@@ -57,7 +57,10 @@ function AjaxResponse(res, type) {
   if (obj.method == "channel") {
     if (obj.channel) {
       for (var i = 0; i < obj.channel.length; i++) {
-        getChannel(obj.channel[i].name);
+        var ch=getChannel(obj.channel[i].name);
+        for (var j = 0; j < obj.channel[i].nick.length; j++) {
+          ch.appendNick(obj.channel[i].nick[j].nick,obj.channel[i].nick[j].op);
+        }
       }
     }
   }
@@ -189,34 +192,50 @@ API.sendPart = function(channel, msg) {
   this.rawMessage(rpc);
 }
 
-var Channel = function(name) {
+var Channel = function (name) {
   this.name = name;
+  this.button_id = "button_" + name.slice(1);
+  this.root_id = "channel_" + name.slice(1);
+  this.nick_list = new Array;
   this.scroll_pos = 0;
-  var short_name = name.slice(1);
 
   $("#menu_list").append($("<div>")
     .attr('class', 'span1')
       .append($("<button>")
-      .attr('id', "button_" + short_name)
+      .attr('id', this.button_id)
       .attr('class', "btn channel_button ")
       .text(name)));
 
   this.root = $("#template_channel").clone();
-  this.root.attr("id", "");
+  this.root.attr("id", this.root_id);
   this.log = this.root.find(".channel_log");
 
   this.root.find(".channel_name").text(name);
-  $("#button_" + short_name).live("click", function() { showChannel(name); });
+  this.root.find(".channel_log").flickable();
+  $("#" + this.button_id).live("click", function () { showChannel(name); });
 
   $("#channel").append(this.root);
 
-  this.findNick = function(name) {
+  this.updateNickList = function () {
+    var nick = this.root.find(".channel_nick");
+    nick.empty();
+    for (var i = 0; i < this.nick_list.length; i++) {
+      nick.append($("<li>")
+        .text(this.nick_list[i].name));
+    }
+  }
+  this.findNick = function (name) {
     var hit = 0;
     return hit;
   }
-  this.appendNick = function(name) {
+  this.appendNick = function (name, op) {
+    this.nick_list.push({
+      name: name,
+      op: op
+    });
+    this.updateNickList();
   }
-  this.removeNick = function(name) {
+  this.removeNick = function (name) {
   }
 }
 
@@ -262,8 +281,7 @@ function main() {
   $("#join_channel_button").live("click", joinChannel);
 
   API.getChannel();
-  setInterval("polling()", 5000);
+  setInterval("polling()", 20000);
 }
 
 $(main);
-
