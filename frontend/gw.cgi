@@ -15,14 +15,15 @@ def MySQLExecute(request):
     cur = connect.cursor()
     cur.execute("set names utf8")
     if param:
-        cur.execute(req,param)
+        cur.execute(request,param)
     else:
-        cur.execute(req)
+        cur.execute(request)
     rows = cur.fetchall()
     cur.close()
     connect.close()
     return rows
-    
+def Escape(str):
+    return MySQLdb.escape_string(str.encode('utf-8'));
 
 request=json.load(sys.stdin)
 
@@ -30,18 +31,30 @@ param=()
 
 response={}
 
+def getChannelNick(name):
+    req="select nick_name,is_operator from join_nick where channel_name='%s'"%(Escape(name))
+    res=MySQLExecute(req)
+    ret=[]
+    for r in res:
+        nick={};
+        nick["nick"]=r[0]
+        nick["op"]=r[1]
+        ret.append(nick)
+    return ret
+    
+
 if request["method"]=="getChannel":
-    req="select * from channel"
+    req="select name,topic from channel"
     rows=MySQLExecute(req)
     response["method"]="channel"
     response["channel"]=[]
     
     for r in rows:
         channel={};
-        channel["time"]=r[0].__str__()
-        channel["name"]=r[1]
-        if(r[2]):
-            channel["topic"]=r[2]
+        channel["name"]=r[0]
+        channel["nick"]=getChannelNick(r[0])
+        if(r[1]):
+            channel["topic"]=r[1]
         response["channel"].append(channel)
         
 elif request["method"]=="getEvent":
@@ -68,18 +81,6 @@ elif request["method"]=="getEvent":
                 break
             event["param%d"%(i+1)]=r[i+3]
         response["event"].append(event)
-elif request["method"] == "getNick":
-    req="select * from join_nick"
-    rows=MySQLExecute(req)
-    response["method"]="nick"
-    response["nick"]=[];
-
-    for r in rows:
-        nick={};
-        nick["nick"]=r[1]
-        nick["channel"]=r[2]
-        nick["op"]=r[3]
-        response["nick"].append(nick)
 elif request["method"] == "Privmsg":
     req="insert into queue set command='PRIVMSG',parameter='%s',message='%s'"%(MySQLdb.escape_string(request["channel"].encode('utf-8')),MySQLdb.escape_string(request["message"].encode('utf-8')))
     MySQLExecute(req)

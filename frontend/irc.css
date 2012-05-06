@@ -1,0 +1,48 @@
+.channel_log
+{
+    font-family:monospace;
+    height:500px;
+}
+
+.channel_log ul {
+	margin: 0;
+	padding: 0px 0 0 2px;
+	list-style: none;
+	line-height: normal;
+}
+
+.channel_log li {
+	margin: 0;
+	padding: 0px 0 0 2px;
+	display: block;
+}
+
+.privmsg 
+{
+	color:#222;
+}
+
+.notice 
+{
+	color:#555;
+}
+
+.join
+{
+	color:#2a2;
+}
+
+.quit
+{
+	color:#d22;
+}
+
+.part
+{
+	color:#d22;
+}
+
+.nick
+{
+	color:#da2;
+}

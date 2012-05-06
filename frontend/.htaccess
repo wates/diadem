@@ -1,5 +1,0 @@
-AuthType Basic
-AuthName Diadem
-AuthUserFile /home/xxx/passwd.dat
-require valid-user
-

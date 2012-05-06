@@ -1,357 +1,268 @@
 
 var IRC = new Object();
 
-var active_channel;
-var next_polling_count=10;
-
-
-var API=new Object;
-
+var API = new Object;
+var channels = new Array;
 var lastres;
 
-function PrecCh(name)
-{
-    for(var c in Chs)
-    {
-        if(Chs[c].name==name)
-        {
-            return;
-        }
+function getChannel(name) {
+  for (var i = 0; i < channels.length; i++) {
+    if (channels[i].name == name) {
+      return channels[i];
     }
-    Chs[name]=new Channel(name);
+  }
+  var ch = new Channel(name);
+  channels.push(ch);
+  return ch;
 }
 
-function InText(s,text) {
-
-    if (null == s.innerText) {
-        s.textContent = text;
+function showChannel(name) {
+  $("#system").hide();
+  for (var i = 0; i < channels.length; i++) {
+    if (channels[i].name == name) {
+      channels[i].root.show();
     }
     else {
-        s.innerText = text;
+      channels[i].root.hide();
     }
+  }
+  $("#channel").show();
 }
 
-function AjaxResponse(res,type)
-{
-    var obj=eval("("+res+")");
-    if(obj.method=="channel")
-    {
-        if(obj.channel)
-        {
-            for(var i=0;i<obj.channel.length;i++)
-            {
-                var chn=obj.channel[i].name;
-                Chs[chn]=new Channel(chn);
-            }
+function showAll() {
+  $("#system").show();
+  for (var i = 0; i < channels.length; i++) {
+    channels[i].root.show();
+  }
+  $("#channel").show();
+}
+
+
+API.sendMessage = function(obj) {
+  var param = JSON.stringify(obj);
+  $.ajax({
+    type: "POST",
+    url: "gw.cgi",
+    data: param,
+    success: AjaxResponse
+  });
+}
+
+function AjaxResponse(res, type) {
+  try {
+    var obj = JSON.parse(res);
+  } catch (n) {
+    return;
+  }
+  if (obj.method == "channel") {
+    if (obj.channel) {
+      for (var i = 0; i < obj.channel.length; i++) {
+        getChannel(obj.channel[i].name);
+      }
+    }
+  }
+  if (obj.method == "event" && (null == API.last_event_response_time || API.last_event_response_time < obj.response_time)) {
+    API.last_event_response_time = obj.response_time;
+    for (var i = 0; i < obj.event.length; i++) {
+      var e = obj.event[i];
+      if (e.command == "PRIVMSG") {
+        var ch = getChannel(e.param1);
+        var li = $("<li>")
+          .attr("class", "primsg")
+          .text(e.time.split(" ")[1] + " [" + e.prefix + "] " + e.param2);
+        ch.log.append(li);
+        ch.root.scrollTop += 17;
+      }
+      else if (e.command == "NOTICE") {
+      var ch = getChannel(e.param1);
+      var li = $("<li>")
+          .attr("class", "notice")
+          .text(e.time.split(" ")[1] + " [" + e.prefix + "] " + e.param2);
+      ch.log.append(li);
+      ch.root.scrollTop += 17;
+    }
+      else if (e.command == "JOIN") {
+        var ch=getChannel(e.param1);
+        var li = $("<li>")
+          .attr("class", "join")
+          .text( e.time.split(" ")[1] + " " + e.prefix + " join");
+        ch.log.append(li);
+        ch.root.scrollTop += 17;
+//        Chs[e.param1].appendNick(e.prefix);
+      }
+      else if (e.command == "PART") {
+        var ch = getChannel(e.param1);
+        var li = $("<li>")
+            .attr("class", "part")
+            .text(e.time.split(" ")[1] + " " + e.prefix + " part - " + e.param2);
+        ch.log.append(li);
+        ch.root.scrollTop += 17;
+//        Chs[e.param1].removeNick(e.prefix);
+      }
+      else if (e.command == "NICK") {
+        for (var i = 0; i < channels.length; i++) {
+          if (channels[i].findNick(e.prefix) == 1) {
+            var ch = getChannel(e.param1);
+            var li = $("<li>")
+            .attr("class", "nick")
+            .text(e.time.split(" ")[1] + " " + e.prefix + " nick -> " + e.param1);
+//            Chs[c].removeNick(e.prefix);
+//            Chs[c].appendNick(e.param1);
+          }
         }
-        API.getNick();
-    }
-    if (obj.method == "event" && (null==API.last_event_response_time || API.last_event_response_time < obj.response_time))
-    {
-        API.last_event_response_time=obj.response_time;
-        for(var i=0;i<obj.event.length;i++)
-        {
-            var e=obj.event[i];
-            if(e.command=="PRIVMSG")
-            {
-                 PrecCh(e.param1);
-                 var li=document.createElement("li");
-                 li.setAttribute("class", "privmsg");
-                 InText(li,e.time.split(" ")[1]+" ["+e.prefix+"] "+e.param2);
-                 Chs[e.param1].msg.appendChild(li);
-                 Chs[e.param1].root.scrollTop+=17;
-            }
-            else if(e.command=="NOTICE")
-            {
-                 PrecCh(e.param1);
-                 var li=document.createElement("li");
-                 li.setAttribute("class","notice");
-                 InText(li,e.time.split(" ")[1]+" ["+e.prefix+"] "+e.param2);
-                 Chs[e.param1].msg.appendChild(li);
-                 Chs[e.param1].root.scrollTop+=17;
-            }
-            else if(e.command=="JOIN")
-            {
-                 PrecCh(e.param1);
-                 var li=document.createElement("li");
-                 li.setAttribute("class","join");
-                 InText(li,e.time.split(" ")[1]+" "+e.prefix+" join");
-                 Chs[e.param1].msg.appendChild(li);
-                 Chs[e.param1].root.scrollTop+=17;
-                 Chs[e.param1].appendNick(e.prefix);
-            }
-            else if(e.command=="PART")
-            {
-                 PrecCh(e.param1);
-                 var li=document.createElement("li");
-                 li.setAttribute("class", "part");
-
-                 var text=e.time.split(" ")[1]+" "+e.prefix+" part - ";
-                 if(e.param2)
-                 {
-                     text+=e.param2;
-                 }
-                 InText(li,text);
-                 Chs[e.param1].msg.appendChild(li);
-                 Chs[e.param1].root.scrollTop+=17;
-                 Chs[e.param1].removeNick(e.prefix);
-            }
-            else if(e.command=="NICK")
-            {
-                 for(var c in Chs)
-                 {
-                     if(Chs[c].findNick(e.prefix)==1)
-                     {
-                         var li=document.createElement("li");
-                         li.setAttribute("class","nick");
-                         InText(li,e.time.split(" ")[1]+" "+e.prefix+" nick -> "+e.param1);
-                         Chs[c].removeNick(e.prefix);
-                         Chs[c].appendNick(e.param1);
-                         Chs[c].msg.appendChild(li);
-                         Chs[c].root.scrollTop+=17;
-                     }
-                 }
-            }
-            else if(e.command=="QUIT")
-            {
-                 for(var c in Chs)
-                 {
-                     if(Chs[c].findNick(e.prefix)==1)
-                     {
-                         var li=document.createElement("li");
-                         li.setAttribute("class", "quit");
-                         var text=e.time.split(" ")[1]+" "+e.prefix+" quit - ";
-                         if(e.param1)
-                         {
-                             text+=e.param1;
-                         }
-                         InText(li, text);
-                         Chs[c].removeNick(e.prefix);
-                         Chs[c].msg.appendChild(li);
-                         Chs[c].root.scrollTop+=17;
-                     }
-                 }
-            }
-        }
-    }
-    if(obj.method=="nick")
-    {
-        for(var i=0;i<obj.nick.length;i++)
-        {
-            var nick=obj.nick[i];
-            Chs[nick.channel].appendNick(nick.nick);
-        }
-        next_polling_count=1;
-    }
-    
-    var last_response=document.getElementById("last_response_time");
-    InText(last_response,obj.response_time);
-}
-
-
-API.rawMessage=function(obj)
-{
-    var param = JSON.stringify(obj);
-    $.ajax({
-        type: "POST",
-        url: "getch.cgi",
-        data: param,
-        success: AjaxResponse
-    });
-    //new Ajax.Request("getch.cgi",{method:'post',parameters:param,onComplete:AjaxResponse});
-}
-
-API.getEvent=function()
-{
-    var rpc=new Object();
-    rpc.method="getEvent";
-    if(this.last_event_response_time)
-    {
-        rpc.last_response_time=this.last_event_response_time;
-    }
-    this.rawMessage(rpc);   
-}
-
-API.getChannel=function()
-{
-    var rpc=new Object();
-    rpc.method="getChannel";
-    this.rawMessage(rpc);
-}
-
-API.getNick=function()
-{
-    var rpc=new Object();
-    rpc.method="getNick";
-    this.rawMessage(rpc);
-}
-
-API.sendPrivmsg=function(channel,msg)
-{
-    var rpc=new Object();
-    rpc.method="Privmsg";
-    rpc.channel=channel;
-    rpc.message=msg;
-    this.rawMessage(rpc); 
-}
-
-API.sendJoin=function(channel)
-{
-    var rpc=new Object();
-    rpc.method="Join";
-    rpc.channel=channel;
-    this.rawMessage(rpc); 
-}
-
-API.sendPart=function(channel,msg)
-{
-    var rpc=new Object();
-    rpc.method="Part";
-    rpc.channel=channel;
-    rpc.message=msg;
-    this.rawMessage(rpc); 
-}
-
-
-var Chs=new Object;
-
-var Channel = function (name) {
-    this.name = name;
-    this.scroll_pos = 0;
-    this.root = document.createElement("div");
-
-    document.getElementById("channels").appendChild(this.root);
-    this.msg = document.createElement("ul");
-    this.root.appendChild(this.msg);
-    this.root.setAttribute("class", "entry");
-    this.root.style.display = "none";
-
-    //channel tab
-    $("#menu_list").append("<li><button class=\"change_channel_button\">" + name + "</button></li>");
-
-    this.nick = document.createElement("ul");
-    document.getElementById("nicknames").appendChild(this.nick);
-    this.nick.style.display = "none";
-
-    this.show = function () {
-        this.root.style.display = "block";
-        this.nick.style.display = "block";
-        this.root.scrollTop = this.scroll_pos;
-    }
-    this.findNick = function (name) {
-        var hit = 0;
-        for (var n = 0; n < this.nick.childNodes.length; n++) {
-            if (this.nick.childNodes[n].getAttribute("nickname") == name) {
-                hit = 1;
-            }
-        }
-        return hit;
-    }
-    this.appendNick = function (name) {
-        if (this.findNick(name) == 0) {
+      }
+      else if (e.command == "QUIT") {
+        for (var c in Chs) {
+          if (Chs[c].findNick(e.prefix) == 1) {
             var li = document.createElement("li");
-            li.setAttribute("class", "nickname");
-            li.setAttribute("nickname", name);
-            li.innerHTML = name;
-            this.nick.appendChild(li);
-        }
-    }
-    this.removeNick = function (name) {
-        for (var n = 0; n < this.nick.childNodes.length; n++) {
-            if (this.nick.childNodes[n].getAttribute("nickname") == name) {
-                this.nick.removeChild(this.nick.childNodes[n]);
+            li.setAttribute("class", "quit");
+            var text = e.time.split(" ")[1] + " " + e.prefix + " quit - ";
+            if (e.param1) {
+              text += e.param1;
             }
+            InText(li, text);
+            Chs[c].removeNick(e.prefix);
+            Chs[c].msg.appendChild(li);
+            Chs[c].root.scrollTop += 17;
+          }
         }
+      }
     }
-}
-
-function allhide()
-{
-    for(var i in Chs) {
-        if ("block" == Chs[i].root.style.display) {
-            Chs[i].scroll_pos = Chs[i].root.scrollTop;
-        }
-        Chs[i].root.style.display="none";
-        Chs[i].nick.style.display="none";
+  }
+  if (obj.method == "nick") {
+    for (var i = 0; i < obj.nick.length; i++) {
+      var nick = obj.nick[i];
+      Chs[nick.channel].appendNick(nick.nick);
     }
+    next_polling_count = 1;
+  }
+
+  $("#last_response_time").text(obj.response_time);
 }
 
-function joinChannel()
-{
-    var form=document.getElementById("join_channel");
-    if(form.value)
-    {
-        API.sendJoin(form.value);
-        form.value="";
-    }
+
+API.rawMessage = function(obj) {
+  var param = JSON.stringify(obj);
+  $.ajax({
+    type: "POST",
+    url: "gw.cgi",
+    data: param,
+    success: AjaxResponse
+  });
 }
 
-function partChannel()
-{
-    if(active_channel)
-    {
-        API.sendPart(active_channel,"");
-    }
+API.getEvent = function() {
+  var rpc = new Object();
+  rpc.method = "getEvent";
+  if (this.last_event_response_time) {
+    rpc.last_response_time = this.last_event_response_time;
+  }
+  this.rawMessage(rpc);
 }
 
-function change_channel(chname)
-{
-    active_channel=chname;
-    allhide();
-    var sys=document.getElementById("system");
-    var ch=document.getElementById("channel");
-    sys.style.display="none";
-    ch.style.display="block";
-    Chs[chname].show();
+API.getChannel = function() {
+  var rpc = new Object();
+  rpc.method = "getChannel";
+  this.rawMessage(rpc);
 }
 
-function change_system()
-{
-    allhide();
-    var sys=document.getElementById("system");
-    var ch=document.getElementById("channel");
-    sys.style.display="block";
-    ch.style.display="none";
+API.sendPrivmsg = function(channel, msg) {
+  var rpc = new Object();
+  rpc.method = "Privmsg";
+  rpc.channel = channel;
+  rpc.message = msg;
+  this.rawMessage(rpc);
 }
 
-function Say()
-{
-    var form=document.getElementById("say_command");
-    if(active_channel && form.value)
-    {
-        API.sendPrivmsg(active_channel,form.value);
-        form.value="";
-        next_polling_count=1;
-    }
+API.sendJoin = function(channel) {
+  var rpc = new Object();
+  rpc.method = "Join";
+  rpc.channel = channel;
+  this.rawMessage(rpc);
 }
 
-function polling()
-{
-    if(next_polling_count <= 0)
-    {    
-        API.getEvent();
-        next_polling_count=10;
-    }
-    next_polling_count--;
+API.sendPart = function(channel, msg) {
+  var rpc = new Object();
+  rpc.method = "Part";
+  rpc.channel = channel;
+  rpc.message = msg;
+  this.rawMessage(rpc);
+}
+
+var Channel = function(name) {
+  this.name = name;
+  this.scroll_pos = 0;
+  var short_name = name.slice(1);
+
+  $("#menu_list").append($("<div>")
+    .attr('class', 'span1')
+      .append($("<button>")
+      .attr('id', "button_" + short_name)
+      .attr('class', "btn channel_button ")
+      .text(name)));
+
+  this.root = $("#template_channel").clone();
+  this.root.attr("id", "");
+  this.log = this.root.find(".channel_log");
+
+  this.root.find(".channel_name").text(name);
+  $("#button_" + short_name).live("click", function() { showChannel(name); });
+
+  $("#channel").append(this.root);
+
+  this.findNick = function(name) {
+    var hit = 0;
+    return hit;
+  }
+  this.appendNick = function(name) {
+  }
+  this.removeNick = function(name) {
+  }
+}
+
+function joinChannel() {
+  var form = document.getElementById("join_channel");
+  if (form.value) {
+    API.sendJoin(form.value);
+    form.value = "";
+  }
+}
+
+function partChannel() {
+  if (active_channel) {
+    API.sendPart(active_channel, "");
+  }
+}
+
+function Say() {
+  var form = document.getElementById("say_command");
+  if (active_channel && form.value) {
+    API.sendPrivmsg(active_channel, form.value);
+    form.value = "";
+    next_polling_count = 1;
+  }
+}
+
+function polling() {
+  API.getEvent();
 }
 
 function Keydown(e) {
-    if (13 == e.keyCode) {
-        Say();
-        return false;
-    }
+  if (13 == e.keyCode) {
+    Say();
+    return false;
+  }
 }
 
 function main() {
-    $("#menu_system").live("click", change_system);
-    $("#say_command").keydown(Keydown);
-    $("#say_button").live("click", Say);
-    $("#join_channel_button").live("click", joinChannel);
-    $(".change_channel_button").live("click", function () { change_channel($(this).text()); });
+  $("#menu_system").live("click", function() { $("#channel").hide(); $("#system").show(); });
+  $("#menu_all").live("click", showAll);
+  $("#say_command").keydown(Keydown);
+  $("#say_button").live("click", Say);
+  $("#join_channel_button").live("click", joinChannel);
 
-    change_system();
-    API.getChannel();
-    setInterval("polling()", 1000);
+  API.getChannel();
+  setInterval("polling()", 5000);
 }
 
 $(main);
