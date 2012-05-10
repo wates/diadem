@@ -1,5 +1,33 @@
+function IRC() {
+  this.channels = new Array;
+}
 
-var IRC = new Object();
+IRC.prototype.getChannel = function (name) {
+  for (var i = 0; i < channels.length; i++) {
+    if (channels[i].name == name) {
+      return channels[i];
+    }
+  }
+  var ch = new Channel(name);
+  channels.push(ch);
+  return ch;
+}
+
+IRC.prototype.showChannel = function showChannel(name) {
+  $("#system").hide();
+  for (var i = 0; i < channels.length; i++) {
+    if (channels[i].name == name) {
+      channels[i].root.show();
+    }
+    else {
+      channels[i].root.hide();
+    }
+  }
+  $("#channel").show();
+}
+
+
+
 
 var API = new Object;
 var channels = new Array;
@@ -38,7 +66,7 @@ function showAll() {
 }
 
 
-API.sendMessage = function(obj) {
+API.sendMessage = function (obj) {
   var param = JSON.stringify(obj);
   $.ajax({
     type: "POST",
@@ -54,12 +82,15 @@ function AjaxResponse(res, type) {
   } catch (n) {
     return;
   }
+  if (obj.motd) {
+    $("#motd").text(obj.motd);
+  }
   if (obj.method == "channel") {
     if (obj.channel) {
       for (var i = 0; i < obj.channel.length; i++) {
-        var ch=getChannel(obj.channel[i].name);
+        var ch = getChannel(obj.channel[i].name);
         for (var j = 0; j < obj.channel[i].nick.length; j++) {
-          ch.appendNick(obj.channel[i].nick[j].nick,obj.channel[i].nick[j].op);
+          ch.appendNick(obj.channel[i].nick[j].nick, obj.channel[i].nick[j].op);
         }
       }
     }
@@ -77,21 +108,21 @@ function AjaxResponse(res, type) {
         ch.root.scrollTop += 17;
       }
       else if (e.command == "NOTICE") {
-      var ch = getChannel(e.param1);
-      var li = $("<li>")
+        var ch = getChannel(e.param1);
+        var li = $("<li>")
           .attr("class", "notice")
           .text(e.time.split(" ")[1] + " [" + e.prefix + "] " + e.param2);
-      ch.log.append(li);
-      ch.root.scrollTop += 17;
-    }
-      else if (e.command == "JOIN") {
-        var ch=getChannel(e.param1);
-        var li = $("<li>")
-          .attr("class", "join")
-          .text( e.time.split(" ")[1] + " " + e.prefix + " join");
         ch.log.append(li);
         ch.root.scrollTop += 17;
-//        Chs[e.param1].appendNick(e.prefix);
+      }
+      else if (e.command == "JOIN") {
+        var ch = getChannel(e.param1);
+        var li = $("<li>")
+          .attr("class", "join")
+          .text(e.time.split(" ")[1] + " " + e.prefix + " join");
+        ch.log.append(li);
+        ch.root.scrollTop += 17;
+        ch.appendNick(e.prefix);
       }
       else if (e.command == "PART") {
         var ch = getChannel(e.param1);
@@ -100,7 +131,7 @@ function AjaxResponse(res, type) {
             .text(e.time.split(" ")[1] + " " + e.prefix + " part - " + e.param2);
         ch.log.append(li);
         ch.root.scrollTop += 17;
-//        Chs[e.param1].removeNick(e.prefix);
+        ch.removeNick(e.prefix);
       }
       else if (e.command == "NICK") {
         for (var i = 0; i < channels.length; i++) {
@@ -109,8 +140,8 @@ function AjaxResponse(res, type) {
             var li = $("<li>")
             .attr("class", "nick")
             .text(e.time.split(" ")[1] + " " + e.prefix + " nick -> " + e.param1);
-//            Chs[c].removeNick(e.prefix);
-//            Chs[c].appendNick(e.param1);
+            //            Chs[c].removeNick(e.prefix);
+            //            Chs[c].appendNick(e.param1);
           }
         }
       }
@@ -144,7 +175,7 @@ function AjaxResponse(res, type) {
 }
 
 
-API.rawMessage = function(obj) {
+API.rawMessage = function (obj) {
   var param = JSON.stringify(obj);
   $.ajax({
     type: "POST",
@@ -154,7 +185,7 @@ API.rawMessage = function(obj) {
   });
 }
 
-API.getEvent = function() {
+API.getEvent = function () {
   var rpc = new Object();
   rpc.method = "getEvent";
   if (this.last_event_response_time) {
@@ -163,13 +194,13 @@ API.getEvent = function() {
   this.rawMessage(rpc);
 }
 
-API.getChannel = function() {
+API.getChannel = function () {
   var rpc = new Object();
   rpc.method = "getChannel";
   this.rawMessage(rpc);
 }
 
-API.sendPrivmsg = function(channel, msg) {
+API.sendPrivmsg = function (channel, msg) {
   var rpc = new Object();
   rpc.method = "Privmsg";
   rpc.channel = channel;
@@ -177,14 +208,14 @@ API.sendPrivmsg = function(channel, msg) {
   this.rawMessage(rpc);
 }
 
-API.sendJoin = function(channel) {
+API.sendJoin = function (channel) {
   var rpc = new Object();
   rpc.method = "Join";
   rpc.channel = channel;
   this.rawMessage(rpc);
 }
 
-API.sendPart = function(channel, msg) {
+API.sendPart = function (channel, msg) {
   var rpc = new Object();
   rpc.method = "Part";
   rpc.channel = channel;
@@ -193,11 +224,14 @@ API.sendPart = function(channel, msg) {
 }
 
 var Channel = function (name) {
+  this.root_id = "channel_" + name.slice(1);
+  this.root = $("#template_channel").clone();
+  this.root.attr("id", this.root_id);
   this.name = name;
   this.button_id = "button_" + name.slice(1);
-  this.root_id = "channel_" + name.slice(1);
   this.nick_list = new Array;
   this.scroll_pos = 0;
+  this.log = this.root.find(".channel_log");
 
   $("#menu_list").append($("<div>")
     .attr('class', 'span1')
@@ -206,12 +240,9 @@ var Channel = function (name) {
       .attr('class', "btn channel_button ")
       .text(name)));
 
-  this.root = $("#template_channel").clone();
-  this.root.attr("id", this.root_id);
-  this.log = this.root.find(".channel_log");
-
   this.root.find(".channel_name").text(name);
   this.root.find(".channel_log").flickable();
+
   $("#" + this.button_id).live("click", function () { showChannel(name); });
 
   $("#channel").append(this.root);
@@ -274,7 +305,7 @@ function Keydown(e) {
 }
 
 function main() {
-  $("#menu_system").live("click", function() { $("#channel").hide(); $("#system").show(); });
+  $("#menu_system").live("click", function () { $("#channel").hide(); $("#system").show(); });
   $("#menu_all").live("click", showAll);
   $("#say_command").keydown(Keydown);
   $("#say_button").live("click", Say);
@@ -285,3 +316,4 @@ function main() {
 }
 
 $(main);
+

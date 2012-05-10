@@ -44,8 +44,7 @@ def getChannelNick(name):
     
 
 if request["method"]=="getChannel":
-    req="select name,topic from channel"
-    rows=MySQLExecute(req)
+    rows=MySQLExecute("select name,topic from channel")
     response["method"]="channel"
     response["channel"]=[]
     
@@ -56,7 +55,12 @@ if request["method"]=="getChannel":
         if(r[1]):
             channel["topic"]=r[1]
         response["channel"].append(channel)
-        
+    rows=MySQLExecute("select * from motd order by time desc limit 1")
+    for r in rows:
+        response["motd"]=r[2];
+
+
+
 elif request["method"]=="getEvent":
     req=""
     if(request.has_key("last_response_time")):
