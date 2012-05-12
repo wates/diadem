@@ -3,68 +3,43 @@ function IRC() {
 }
 
 IRC.prototype.getChannel = function (name) {
-  for (var i = 0; i < channels.length; i++) {
-    if (channels[i].name == name) {
-      return channels[i];
+  for (var i = 0; i < this.channels.length; i++) {
+    if (this.channels[i].name == name) {
+      return this.channels[i];
     }
   }
   var ch = new Channel(name);
-  channels.push(ch);
+  this.channels.push(ch);
   return ch;
 }
 
-IRC.prototype.showChannel = function showChannel(name) {
+IRC.prototype.showChannel = function (name) {
   $("#system").hide();
-  for (var i = 0; i < channels.length; i++) {
-    if (channels[i].name == name) {
-      channels[i].root.show();
+  for (var i = 0; i < this.channels.length; i++) {
+    if (this.channels[i].name == name) {
+      this.channels[i].root.show();
     }
     else {
-      channels[i].root.hide();
+      this.channels[i].root.hide();
     }
   }
   $("#channel").show();
 }
 
+IRC.prototype.showAll = function () {
+  $("#system").show();
+  for (var i = 0; i < this.channels.length; i++) {
+    this.channels[i].root.show();
+  }
+  $("#channel").show();
+}
+
+var irc = new IRC();
 
 
 
 var API = new Object;
-var channels = new Array;
 var lastres;
-
-function getChannel(name) {
-  for (var i = 0; i < channels.length; i++) {
-    if (channels[i].name == name) {
-      return channels[i];
-    }
-  }
-  var ch = new Channel(name);
-  channels.push(ch);
-  return ch;
-}
-
-function showChannel(name) {
-  $("#system").hide();
-  for (var i = 0; i < channels.length; i++) {
-    if (channels[i].name == name) {
-      channels[i].root.show();
-    }
-    else {
-      channels[i].root.hide();
-    }
-  }
-  $("#channel").show();
-}
-
-function showAll() {
-  $("#system").show();
-  for (var i = 0; i < channels.length; i++) {
-    channels[i].root.show();
-  }
-  $("#channel").show();
-}
-
 
 API.sendMessage = function (obj) {
   var param = JSON.stringify(obj);
@@ -88,7 +63,7 @@ function AjaxResponse(res, type) {
   if (obj.method == "channel") {
     if (obj.channel) {
       for (var i = 0; i < obj.channel.length; i++) {
-        var ch = getChannel(obj.channel[i].name);
+        var ch = irc.getChannel(obj.channel[i].name);
         for (var j = 0; j < obj.channel[i].nick.length; j++) {
           ch.appendNick(obj.channel[i].nick[j].nick, obj.channel[i].nick[j].op);
         }
@@ -100,7 +75,7 @@ function AjaxResponse(res, type) {
     for (var i = 0; i < obj.event.length; i++) {
       var e = obj.event[i];
       if (e.command == "PRIVMSG") {
-        var ch = getChannel(e.param1);
+        var ch = irc.getChannel(e.param1);
         var li = $("<li>")
           .attr("class", "primsg")
           .text(e.time.split(" ")[1] + " [" + e.prefix + "] " + e.param2);
@@ -108,7 +83,7 @@ function AjaxResponse(res, type) {
         ch.root.scrollTop += 17;
       }
       else if (e.command == "NOTICE") {
-        var ch = getChannel(e.param1);
+        var ch = irc.getChannel(e.param1);
         var li = $("<li>")
           .attr("class", "notice")
           .text(e.time.split(" ")[1] + " [" + e.prefix + "] " + e.param2);
@@ -116,7 +91,7 @@ function AjaxResponse(res, type) {
         ch.root.scrollTop += 17;
       }
       else if (e.command == "JOIN") {
-        var ch = getChannel(e.param1);
+        var ch = irc.getChannel(e.param1);
         var li = $("<li>")
           .attr("class", "join")
           .text(e.time.split(" ")[1] + " " + e.prefix + " join");
@@ -125,7 +100,7 @@ function AjaxResponse(res, type) {
         ch.appendNick(e.prefix);
       }
       else if (e.command == "PART") {
-        var ch = getChannel(e.param1);
+        var ch = irc.getChannel(e.param1);
         var li = $("<li>")
             .attr("class", "part")
             .text(e.time.split(" ")[1] + " " + e.prefix + " part - " + e.param2);
@@ -135,8 +110,8 @@ function AjaxResponse(res, type) {
       }
       else if (e.command == "NICK") {
         for (var i = 0; i < channels.length; i++) {
-          if (channels[i].findNick(e.prefix) == 1) {
-            var ch = getChannel(e.param1);
+          if (irc.channels[i].findNick(e.prefix) == 1) {
+            var ch = irc.getChannel(e.param1);
             var li = $("<li>")
             .attr("class", "nick")
             .text(e.time.split(" ")[1] + " " + e.prefix + " nick -> " + e.param1);
@@ -243,7 +218,7 @@ var Channel = function (name) {
   this.root.find(".channel_name").text(name);
   this.root.find(".channel_log").flickable();
 
-  $("#" + this.button_id).live("click", function () { showChannel(name); });
+  $("#" + this.button_id).live("click", function () { irc.showChannel(name); });
 
   $("#channel").append(this.root);
 
@@ -306,7 +281,7 @@ function Keydown(e) {
 
 function main() {
   $("#menu_system").live("click", function () { $("#channel").hide(); $("#system").show(); });
-  $("#menu_all").live("click", showAll);
+  $("#menu_all").live("click", function () { irc.showAll(); });
   $("#say_command").keydown(Keydown);
   $("#say_button").live("click", Say);
   $("#join_channel_button").live("click", joinChannel);
