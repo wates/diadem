@@ -2,9 +2,9 @@
 function Channel(name) {
   var sname = name;
   if (sname[0] == '#') {
-    sname=sname.slice(1);
+    sname = sname.slice(1);
   }
-  
+
   this.root_id = "channel_" + sname;
   this.root = $("#template_channel").clone();
   this.root.attr("id", this.root_id);
@@ -25,13 +25,13 @@ function Channel(name) {
   this.root.find(".channel_name").text(name);
   this.root.find(".channel_log").flickable();
 
-  $("#" + this.button_id).live("click", function() { irc.showChannel(name); });
+  $("#" + this.button_id).live("click", function () { irc.showChannel(name); });
 
   $("#channel").append(this.root);
 
 }
 
-Channel.prototype.updateNickList = function() {
+Channel.prototype.updateNickList = function () {
   var nick = this.root.find(".channel_nick");
   nick.empty();
   for (var i = 0; i < this.nick_list.length; i++) {
@@ -40,12 +40,12 @@ Channel.prototype.updateNickList = function() {
   }
 }
 
-Channel.prototype.findNick = function(name) {
+Channel.prototype.findNick = function (name) {
   var hit = 0;
   return hit;
 }
 
-Channel.prototype.appendNick = function(name, op) {
+Channel.prototype.appendNick = function (name, op) {
   this.nick_list.push({
     name: name,
     op: op
@@ -53,7 +53,7 @@ Channel.prototype.appendNick = function(name, op) {
   this.updateNickList();
 }
 
-Channel.prototype.updateEvent = function(e) {
+Channel.prototype.updateEvent = function (e) {
   if (e.command == "PRIVMSG") {
     if (this.name == e.param1) {
       this.log.append($("<li>")
@@ -74,7 +74,7 @@ Channel.prototype.updateEvent = function(e) {
     if (this.name == e.param1) {
       this.log.append($("<li>")
             .attr("class", "join")
-            .text(e.time.split(" ")[1] + " " + e.prefix + " join");
+            .text(e.time.split(" ")[1] + " " + e.prefix + " join")
                 );
       this.appendNick(e.prefix);
     }
@@ -83,7 +83,7 @@ Channel.prototype.updateEvent = function(e) {
     if (this.name == e.param1) {
       this.log.append($("<li>")
               .attr("class", "part")
-              .text(e.time.split(" ")[1] + " " + e.prefix + " part - " + e.param2);
+              .text(e.time.split(" ")[1] + " " + e.prefix + " part - " + e.param2)
                 );
       this.removeNick(e.prefix);
     }
@@ -155,7 +155,7 @@ function AjaxResponse(res, type) {
   if (obj.method == "nick") {
     for (var i = 0; i < obj.nick.length; i++) {
       var nick = obj.nick[i];
-//      Chs[nick.channel].appendNick(nick.nick);
+      //      Chs[nick.channel].appendNick(nick.nick);
     }
     next_polling_count = 1;
   }
@@ -172,43 +172,13 @@ function AjaxResponse(res, type) {
   if (obj.method == "event" &&
      (null == API.last_event_response_time || API.last_event_response_time < obj.response_time)) {
     API.last_event_response_time = obj.response_time;
-    
+
     for (var i = 0; i < obj.event.length; i++) {
       var e = obj.event[i];
-      
-      for (var i = 0; i < channels.length; i++) {
-        irc.channels[i].updateEvent(e);
+
+      for (var j = 0;j < irc.channels.length; j++) {
+        irc.channels[j].updateEvent(e);
       }
-      
-      
-//      if (e.command == "NICK") {
-//        for (var i = 0; i < channels.length; i++) {
-//          if (irc.channels[i].findNick(e.prefix) == 1) {
-//            var ch = irc.getChannel(e.param1);
-//            var li = $("<li>")
-//            .attr("class", "nick")
-//            .text(e.time.split(" ")[1] + " " + e.prefix + " nick -> " + e.param1);
-//            //            Chs[c].removeNick(e.prefix);
-//            //            Chs[c].appendNick(e.param1);
-//          }
-//        }
-//      }
-//      else if (e.command == "QUIT") {
-//        for (var c in Chs) {
-//          if (Chs[c].findNick(e.prefix) == 1) {
-//            var li = document.createElement("li");
-//            li.setAttribute("class", "quit");
-//            var text = e.time.split(" ")[1] + " " + e.prefix + " quit - ";
-//            if (e.param1) {
-//              text += e.param1;
-//            }
-//            InText(li, text);
-//            Chs[c].removeNick(e.prefix);
-//            Chs[c].msg.appendChild(li);
-//            Chs[c].root.scrollTop += 17;
-//          }
-//        }
-//      }
     }
   }
 
